@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Offline · INSS</title>
+    <meta name="theme-color" content="#208AEF" />
+    <!--
+      The last resort, served by sw.js when a navigation fails and no copy of the
+      app was ever stored: a first visit that never got through should say so,
+      not show the browser's own error.
+    -->
+    <style>
+      :root {
+        color-scheme: light dark;
+        --background: #ffffff;
+        --text: #111315;
+        --dim: #60646c;
+        --rule: #d8dadf;
+        --accent: #208aef;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #111315;
+          --text: #ffffff;
+          --dim: #9aa0a6;
+          --rule: #2e3236;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--background);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      main {
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .eyebrow {
+        margin: 0 0 24px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 34px;
+        line-height: 40px;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0 0 24px;
+        font-size: 16px;
+        line-height: 24px;
+        color: var(--dim);
+      }
+
+      button {
+        width: 100%;
+        height: 52px;
+        border: 0;
+        border-radius: 0;
+        background: var(--accent);
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      button:active {
+        opacity: 0.85;
+      }
+
+      hr {
+        margin: 24px 0 0;
+        border: 0;
+        border-top: 1px solid var(--rule);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">INSS</p>
+      <h1>You are offline</h1>
+      <p>
+        The app needs a connection to reach INSS. Reconnect and try again — nothing has been lost.
+      </p>
+      <button type="button" onclick="location.reload()">Try again</button>
+      <hr />
+    </main>
+  </body>
+</html>

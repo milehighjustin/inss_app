@@ -1,0 +1,122 @@
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { MetroType, Metrics, Radius } from '@/constants/metro';
+import { useMetro } from './use-metro';
+
+/**
+ * Fits a label inside a tile: wrap first, then step the font size down.
+ * Mirrors the rule in METRO.md so tiles never overflow.
+ */
+export function fitTileText(
+  label: string,
+  {
+    available,
+    preferred = MetroType.subheader.fontSize,
+    maxLines = 3,
+  }: { available: number; preferred?: number; maxLines?: number },
+) {
+  const floor = Math.max(10, preferred * 0.72);
+  let fontSize = preferred;
+
+  const lineCount = (size: number) => {
+    const perLine = Math.max(1, available / (size * 0.54));
+    return Math.ceil(label.trim().length / perLine);
+  };
+
+  let lines = lineCount(fontSize);
+  while (lines > maxLines && fontSize > floor) {
+    fontSize = Math.max(floor, Math.round(fontSize * 0.88));
+    lines = lineCount(fontSize);
+  }
+
+  return { fontSize, lines: Math.min(lines, maxLines) };
+}
+
+export interface TileProps {
+  title: string;
+  subtitle?: string;
+  /** Square tiles are the default; `wide` is exactly two squares plus a gutter. */
+  shape?: 'square' | 'wide';
+  /** Square size, from `tileField(...).size`. */
+  size?: number;
+  onPress?: () => void;
+  accent?: boolean;
+  style?: ViewStyle;
+  children?: ReactNode;
+}
+
+export function Tile({
+  title,
+  subtitle,
+  shape = 'square',
+  size = Metrics.tileMax,
+  onPress,
+  accent = false,
+  style,
+  children,
+}: TileProps) {
+  const theme = useMetro();
+  const width = shape === 'wide' ? size * 2 + Metrics.gutter : size;
+  const padding = 14;
+  const { fontSize } = fitTileText(title, { available: width - padding * 2 });
+
+  const content = (
+    <View
+      style={[
+        styles.tile,
+        {
+          width,
+          height: size,
+          padding,
+          backgroundColor: accent ? theme.accent : theme.surface,
+        },
+        style,
+      ]}>
+      <ThemedText
+        type="metroSubheader"
+        numberOfLines={3}
+        style={{
+          color: accent ? theme.onAccent : theme.text,
+          fontSize,
+          lineHeight: Math.round(fontSize * 1.2),
+        }}>
+        {title}
+      </ThemedText>
+      {subtitle ? (
+        <ThemedText
+          type="metroSubtle"
+          numberOfLines={2}
+          style={{ color: accent ? theme.onAccent : theme.textDim }}>
+          {subtitle}
+        </ThemedText>
+      ) : null}
+      {children}
+    </View>
+  );
+
+  if (!onPress) return content;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
+      onPress={onPress}
+      style={({ pressed }) => (pressed ? styles.pressed : undefined)}>
+      {content}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  tile: {
+    borderRadius: Radius.card,
+    justifyContent: 'flex-start',
+    gap: 6,
+    overflow: 'hidden',
+  },
+  pressed: {
+    opacity: 0.75,
+  },
+});

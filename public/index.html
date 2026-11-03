@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
+    />
+
+    <!--
+      The web shell. Expo copies this file as the template for `index.html` in a
+      single-page export (see `web.output` in app.json), so it is the only place
+      the head of every route is defined — `+html.tsx` is for static rendering and
+      is not used here.
+
+      This is what makes the app installable rather than just a website: the
+      manifest supplies the name, colours and icons a browser puts on a home
+      screen or in a dock, and the meta tags below cover the platforms that still
+      read their own vocabulary (iOS's home-screen title and status bar, the
+      theme colour a browser paints its chrome with before the app has drawn).
+      The colours are literals because this file is HTML, not app code: they match
+      MetroColors — accent #208AEF, light background #FFFFFF, dark #111315.
+    -->
+    <title>INSS</title>
+    <meta
+      name="description"
+      content="INSS operations: facilities and KPI, the investor portal, Kiosk Connect calls and support alerts."
+    />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#208AEF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111315" media="(prefers-color-scheme: dark)" />
+
+    <!-- Browsers still disagree about the icon tag, so all three spellings. -->
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+
+    <!-- iOS installs from the share sheet and then reads its own tags: the title
+         under the icon, the status bar, and the flag that makes the home-screen
+         copy open without browser chrome. -->
+    <meta name="application-name" content="INSS" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="INSS" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+
+    <!-- The colour behind the React tree. A web build shows white until the app
+         paints, which flashes on a dark-themed device; the installed window also
+         shows this before its first frame. -->
+    <style id="app-shell">
+      body {
+        background-color: #ffffff;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #111315;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>
