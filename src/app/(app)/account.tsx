@@ -557,7 +557,11 @@ function DesktopAlertsSection() {
   };
 
   const subscribed = status?.subscribed ?? false;
-  const blocked = status?.permission === 'denied';
+  // A live subscription outranks the permission answer. An installed Safari web
+  // app reports `denied` (iOS) or `default` for a permission the person granted,
+  // and telling somebody to turn on what is already on is the one thing this
+  // block must never do — so only an unsubscribed, denied browser is blocked.
+  const blocked = !subscribed && status?.permission === 'denied';
 
   const description = blocked
     ? "Alerts are blocked for this site. Allow notifications in this browser's site settings, then reload this page."

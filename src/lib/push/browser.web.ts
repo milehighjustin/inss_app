@@ -73,11 +73,50 @@ function currentPermission(): DesktopPushStatus['permission'] {
   return Notification.permission;
 }
 
+/** A promise that cannot leave a screen waiting forever. */
+async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      work,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * The registration whose scope covers this page.
+ *
+ * Not `getRegistration('/sw.js')`: that asks for a registration whose scope
+ * contains the *script* URL, which engines resolve differently, and an installed
+ * web app (Safari on iOS, a browser app window on the desktop) can still be
+ * activating its worker when this runs. Either failure made this return nothing,
+ * which read as "alerts are off" on a browser that had them on. The scope walk
+ * covers what is already registered; `ready` covers the one that is not yet.
+ */
+async function scopeRegistration(): Promise<ServiceWorkerRegistration | null> {
+  const all = await navigator.serviceWorker.getRegistrations().catch(() => []);
+  const scoped = all.find((entry) =>
+    window.location.href.startsWith(entry.scope.replace(/\/$/, '')),
+  );
+  if (scoped) return scoped;
+
+  return await withTimeout(
+    navigator.serviceWorker.ready.catch(() => null),
+    4000,
+  );
+}
+
 /** The worker's registration, registering it the first time. */
 async function registration(): Promise<ServiceWorkerRegistration | null> {
   if (!desktopPushSupported()) return null;
 
-  const existing = await navigator.serviceWorker.getRegistration(WORKER_URL);
+  const existing = await scopeRegistration();
   if (existing) return existing;
 
   return navigator.serviceWorker.register(WORKER_URL, { scope: '/' });
@@ -87,10 +126,10 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
 async function currentSubscription(): Promise<PushSubscription | null> {
   if (!desktopPushSupported()) return null;
 
-  const existing = await navigator.serviceWorker.getRegistration(WORKER_URL);
+  const existing = await scopeRegistration();
   if (!existing) return null;
 
-  return existing.pushManager.getSubscription();
+  return existing.pushManager.getSubscription().catch(() => null);
 }
 
 export async function desktopPushStatus(): Promise<DesktopPushStatus> {
@@ -121,23 +160,33 @@ export async function syncDesktopPush(userId: string): Promise<DesktopPushStatus
   const subscription = await currentSubscription();
   const owner = storedOwner();
   let claimed = false;
+  let saveFailed = false;
 
-  if (subscription && currentPermission() === 'granted' && (!owner || owner === userId)) {
+  if (subscription && (!owner || owner === userId)) {
+    // A subscription is this browser's own proof that alerts were allowed here,
+    // and it is the only proof that survives everything else. The permission
+    // answer is deliberately not required: an installed web app reports `denied`
+    // (iOS) or `default` (Safari) for permissions the person has granted, and
+    // gating on it is what made this screen offer Enable to somebody who had
+    // already pressed it.
     try {
       await save(subscription);
       rememberOwner(userId);
       claimed = true;
     } catch {
-      claimed = false;
+      // The server did not take it this time. The subscription is still live, so
+      // it stays on here and the next launch retries the save.
+      saveFailed = true;
     }
   }
 
   return {
     supported: true,
     permission: currentPermission(),
-    // An unclaimed subscription is one this server does not know about for this
-    // person, so it is not subscribed as far as their alerts go.
-    subscribed: Boolean(subscription) && claimed,
+    // Subscribed means this browser has a subscription for this account — not
+    // that the last save round-tripped. An unclaimed subscription (owned by
+    // somebody else) is the one case that reads as off, because it is theirs.
+    subscribed: Boolean(subscription) && (claimed || saveFailed),
   };
 }
 
@@ -155,7 +204,11 @@ export async function enableDesktopPush(userId: string): Promise<DesktopPushStat
 
   const answer = await Notification.requestPermission();
   if (answer !== 'granted') {
-    return { supported: true, permission: answer, subscribed: false };
+    // WebKit in an installed web app can answer `default` — and iOS `denied` —
+    // for a permission the person did just grant. A live subscription is the
+    // proof that matters, so it is checked before this reports failure.
+    const already = await currentSubscription();
+    if (!already) return { supported: true, permission: answer, subscribed: false };
   }
 
   const { publicKey } = await apiFetch<{ publicKey: string | null }>('/api/mobile/push/key');
@@ -165,9 +218,14 @@ export async function enableDesktopPush(userId: string): Promise<DesktopPushStat
 
   await registration();
 
-  // `ready` is a worker that can actually subscribe; a just-registered one is
-  // not until it has activated.
-  const active = await navigator.serviceWorker.ready;
+  // `ready` is a worker that can actually subscribe; a just-registered one is not
+  // until it has activated. Bounded, so a worker that never activates is an error
+  // the person can act on rather than a button spinning forever.
+  const active =
+    (await withTimeout(navigator.serviceWorker.ready, 8000)) ?? (await scopeRegistration());
+  if (!active) {
+    throw new Error('This browser has not finished installing its offline worker. Reload and try again.');
+  }
   const existing = await active.pushManager.getSubscription();
 
   const subscription =
@@ -269,5 +327,13 @@ function describeDevice(): string {
             ? 'iOS'
             : 'Desktop';
 
-  return `${browser} on ${platform}`;
+  // An installed web app is a different client from the Safari tab that added it:
+  // its subscriptions are its own, so the account's device list should say which
+  // is which rather than showing two identical lines.
+  const installed =
+    (typeof window !== 'undefined' &&
+      window.matchMedia?.('(display-mode: standalone)').matches) ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  return `${browser} on ${platform}${installed ? ' (installed app)' : ''}`;
 }
