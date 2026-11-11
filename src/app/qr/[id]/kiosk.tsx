@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
+import { useKeepAwake } from '@/hooks/use-keep-awake';
 import { qrCodeSvgPublic } from '@/lib/qr/public';
 
 /**
@@ -18,6 +19,10 @@ import { qrCodeSvgPublic } from '@/lib/qr/public';
  * screen — they are pointing a phone at it.
  */
 export default function QrKioskScreen() {
+  // A lobby display left alone all day: if it sleeps, the sign beside it is the
+  // only way in.
+  useKeepAwake('qr-display');
+
   const params = useLocalSearchParams<{ id: string }>();
   const codeId = typeof params.id === 'string' ? params.id : '';
   const { width, height } = useWindowDimensions();

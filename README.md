@@ -35,10 +35,24 @@ every launch — no sign-in, no nav. To leave kiosk mode, press and hold the
 top-left corner of the kiosk screen for three seconds. Kiosk mode is for the
 installed apps only; the web build never offers it.
 
+A kiosk machine in a browser needs its camera and microphone granted up front — nobody
+is there to answer a prompt on the first call — which is what
+[`scripts/kiosk/`](scripts/kiosk) does: a PowerShell script for Windows and a bash
+script for Linux, both granting one origin and both able to undo themselves.
+
 Native builds need a development build (`npx expo run:ios` / `run:android` or
 `eas build --profile development`) because the app uses `expo-secure-store`, the
 `inssappv2://` deep-link scheme and `react-native-webrtc` for Kiosk Connect
-calls; Expo Go cannot run those.
+calls; Expo Go cannot run those. `expo-keep-awake` is on the same list — a
+development build made before it was added will not hold the screen awake.
+
+The screens nobody is touching hold the display awake for as long as they are
+open: kiosk mode, the kiosk player (`/kioskconnect/kiosk/<id>`), the lobby QR
+display (`/qr/<id>/kiosk`) and the Kiosk Connect console. That is
+[`src/hooks/use-keep-awake.ts`](src/hooks/use-keep-awake.ts), and it covers the
+browser too, where the wake lock has to be asked for again after the tab has
+been hidden. A browser without the Screen Wake Lock API (Firefox, older Safari)
+ignores it, so a display in one of those still needs its own power settings.
 
 ## Installable web app
 

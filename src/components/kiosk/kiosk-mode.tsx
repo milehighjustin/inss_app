@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { MetroDialog } from '@/components/metro';
 import { KioskPlayer } from '@/components/rtc/kiosk-player';
+import { useKeepAwake } from '@/hooks/use-keep-awake';
 import { useKiosk } from '@/lib/kiosk/kiosk';
 
 /**
@@ -17,6 +18,10 @@ import { useKiosk } from '@/lib/kiosk/kiosk';
 export function KioskMode({ deviceId }: { deviceId: string }) {
   const kiosk = useKiosk();
   const [confirming, setConfirming] = useState(false);
+
+  // A kiosk is never touched between calls. Without this the tablet sleeps on
+  // the OS timer and the display is dark when someone walks up to it.
+  useKeepAwake('kiosk-mode');
 
   return (
     <View style={styles.root}>

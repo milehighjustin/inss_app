@@ -23,7 +23,7 @@ export interface NotificationTag {
   codes?: number;
 }
 
-export type NotificationChannel = 'browser' | 'apns' | 'fcmv1';
+export type NotificationChannel = 'browser' | 'apns' | 'fcmv1' | 'wns';
 
 export interface NotificationSend {
   channel: NotificationChannel;
@@ -138,8 +138,9 @@ export async function listNotifications(limit = 50): Promise<NotificationRecord[
 export function channelSummary(sends: NotificationSend[]): string {
   const names: Record<NotificationChannel, string> = {
     browser: 'browser',
-    apns: 'iPhone',
+    apns: 'Apple',
     fcmv1: 'Android',
+    wns: 'Windows',
   };
 
   const reached = sends.filter((send) => send.ok).map((send) => names[send.channel]);

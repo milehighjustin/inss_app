@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../inss-app-backend"
+		},
+		{
+			"path": "../kiosk-image"
 		}
 	]
 }
