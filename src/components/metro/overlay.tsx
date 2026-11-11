@@ -41,13 +41,26 @@ export function MetroSheet({
         <Scrim onClose={onClose} />
         <View style={[styles.sheet, { backgroundColor: theme.background }]}>
           <View style={[styles.sheetGrabber, { backgroundColor: theme.border }]} />
-          <View style={styles.sheetBody}>
+          {/*
+            The body scrolls, and the sheet is bounded, because the things that
+            open in a sheet list options: every property, every kiosk, every role.
+            Without this the list simply runs off the bottom of the screen and the
+            options past the fold cannot be reached at all — there is nothing to
+            drag. The grabber and the pinned actions stay outside so the close
+            targets never scroll away.
+          */}
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetBody}
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled>
             {title ? <Text style={[styles.sheetTitle, { color: theme.text }]}>{title}</Text> : null}
             {description ? (
               <Text style={[styles.body, { color: theme.textDim }]}>{description}</Text>
             ) : null}
             {children}
-          </View>
+          </ScrollView>
           {actions ? <View style={styles.sheetActions}>{actions}</View> : null}
         </View>
       </View>
@@ -150,7 +163,13 @@ export function MetroDialog({ visible, title, message, actions, onClose }: Metro
         <Scrim onClose={onClose} />
         <View style={[styles.dialog, { backgroundColor: theme.background }]}>
           <Text style={[styles.dialogTitle, { color: theme.text }]}>{title}</Text>
-          {message ? <Text style={[styles.body, { color: theme.textDim }]}>{message}</Text> : null}
+          {/* A dialog's message is usually one line, but a long one must scroll
+              rather than push the buttons off the bottom of the screen. */}
+          {message ? (
+            <ScrollView style={styles.dialogScroll} showsVerticalScrollIndicator>
+              <Text style={[styles.body, { color: theme.textDim }]}>{message}</Text>
+            </ScrollView>
+          ) : null}
           <View style={styles.dialogActions}>
             {actions.map((action) => (
               <MetroButton
@@ -191,8 +210,15 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: '100%',
     maxWidth: 640,
+    // Never taller than the window: the body scrolls inside this, in every
+    // platform, so a long option list is reachable instead of clipped.
+    maxHeight: '88%',
     borderTopLeftRadius: Radius.card,
     borderTopRightRadius: Radius.card,
+  },
+  sheetScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   sheetGrabber: {
     height: 3,
@@ -270,9 +296,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: '100%',
     maxWidth: 420,
+    maxHeight: '88%',
     borderRadius: Radius.card,
     padding: Spacing.four,
     gap: Spacing.three,
+  },
+  dialogScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   dialogTitle: {
     fontSize: MetroType.subheader.fontSize,

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Socket } from 'socket.io-client';
 
 import { MetroButton, MetroLabel } from '@/components/metro';
@@ -245,7 +245,12 @@ function IncomingCall({
       onRequestClose={onIgnore}>
       {alert ? (
         <View style={[styles.page, { backgroundColor: theme.background }]}>
-          <View style={styles.column}>
+          {/* A takeover fills the window, so its content scrolls: a long message
+              on a small phone must not put Answer and Ignore off the screen. */}
+          <ScrollView
+            style={styles.pageScroll}
+            contentContainerStyle={styles.column}
+            showsVerticalScrollIndicator>
             <MetroLabel>Incoming alert</MetroLabel>
 
             <Text style={[styles.title, { color: theme.text }]}>{alert.title}</Text>
@@ -285,7 +290,7 @@ function IncomingCall({
                 {waiting === 1 ? '1 more is waiting.' : `${waiting} more are waiting.`}
               </Text>
             ) : null}
-          </View>
+          </ScrollView>
         </View>
       ) : null}
     </Modal>
@@ -317,14 +322,21 @@ function when(iso: string): string {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  pageScroll: {
+    flex: 1,
+    width: '100%',
   },
   column: {
     width: '100%',
     maxWidth: 520,
+    alignSelf: 'center',
+    // Centred while it fits, scrolling once it does not.
+    flexGrow: 1,
+    justifyContent: 'center',
     gap: Spacing.three,
+    paddingVertical: Spacing.four,
   },
   title: {
     fontSize: 30,

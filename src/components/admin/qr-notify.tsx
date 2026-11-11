@@ -393,7 +393,7 @@ function RecipientSheet({
           {query ? `Nobody matches “${query}”.` : 'There are no active accounts to choose from.'}
         </Text>
       ) : (
-        <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
           {visibleUsers.map((user) => (
             <MetroCheckbox
               key={user.userId}

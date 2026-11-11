@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import {
   MetroButton,
@@ -138,7 +138,12 @@ export function InvestorFiles({ actingAs }: { actingAs?: InvestorTarget }) {
   );
 
   const list = (
-    <View style={styles.listPane}>
+    // The page turns its own scroll off (`scroll={false}`), so the list has to
+    // scroll here or every folder past the fold is unreachable.
+    <ScrollView
+      style={styles.listPane}
+      contentContainerStyle={styles.listPaneContent}
+      showsVerticalScrollIndicator>
       {loading ? (
         <MetroLoading label="Loading your files" />
       ) : error ? (
@@ -162,7 +167,7 @@ export function InvestorFiles({ actingAs }: { actingAs?: InvestorTarget }) {
           </MetroList>
         ))
       )}
-    </View>
+    </ScrollView>
   );
 
   return (
@@ -300,7 +305,10 @@ const styles = StyleSheet.create({
   },
   listPane: {
     flex: 1,
+  },
+  listPaneContent: {
     gap: Spacing.four,
+    paddingBottom: Spacing.four,
   },
   preview: {
     flex: 1,

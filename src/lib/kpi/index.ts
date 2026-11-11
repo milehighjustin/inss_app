@@ -89,6 +89,23 @@ export async function createSavedList(name: string, facilityIds: string[]): Prom
   return list;
 }
 
+export interface SavedListPatch {
+  name?: string;
+  facilityIds?: string[];
+}
+
+/** Rename a list, re-pick its facilities, or both — a partial save stays partial. */
+export async function updateSavedList(
+  listId: string,
+  patch: SavedListPatch,
+): Promise<SavedKpiList> {
+  const { list } = await apiFetch<{ list: SavedKpiList }>(
+    `/api/mobile/kpi/lists/${encodeURIComponent(listId)}`,
+    { method: 'PATCH', body: patch },
+  );
+  return list;
+}
+
 export async function deleteSavedList(listId: string): Promise<void> {
   await apiFetch<{ deleted: true }>(`/api/mobile/kpi/lists/${encodeURIComponent(listId)}`, {
     method: 'DELETE',

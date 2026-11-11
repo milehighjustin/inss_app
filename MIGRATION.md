@@ -66,9 +66,10 @@ reimplement everything and hope it lines up.
   sort by the raw value (v1's toggle), and the frame keeps a footer row of v1's
   sums and non-zero averages under the table. Saved lists work end to end:
   `loglady.savedKpiLists`, the same documents v1's admin panel manages, with the
-  board filtered to a list and a sheet to save the current set. The API returns
-  raw numbers from `loglady.locations`; the app owns all formatting. Nothing is
-  left of v1's board — it has no print or export.
+  board filtered to a list or showing every property; the lists themselves are
+  authored in Admin → KPI. The API returns raw numbers from `loglady.locations`;
+  the app owns all formatting. Nothing is left of v1's board — it has no print or
+  export.
 - **Investor portal.** `(app)/investor` is v1's `/investor`: the Portfolio
   Snapshot tab (equity allocation, the two portfolio totals, the confidentiality
   note) and the Portfolio Report tab (every property beside this investor's
@@ -196,10 +197,10 @@ has to care which one it is.
 ### Phase 3 — KPI (done)
 - **Done:** the board itself — v1's 25 metric columns with a frozen header row,
   frozen facility column and a pinned totals row, two scroll directions inside one
-  frame, header-click sorting on the raw values, search, saved lists (create,
-  switch, delete, stored in `loglady.savedKpiLists`), and a detail screen grouping
-  the same metrics into Occupancy, Movement, Delinquency, Revenue, Leads,
-  Autopay/insurance and Budget with `MetroStat` headline numbers.
+  frame, header-click sorting on the raw values, search, saved lists (switched on
+  the board, authored in Admin → KPI, stored in `loglady.savedKpiLists`), and a
+  detail screen grouping the same metrics into Occupancy, Movement, Delinquency,
+  Revenue, Leads, Autopay/insurance and Budget with `MetroStat` headline numbers.
 - v1's board has no print or export, so there is nothing to port there. Writes
   for lists go through `/api/mobile/kpi/lists`.
 - Exit: a supervisor can answer "how is this store doing this month" in two taps
@@ -257,7 +258,9 @@ has to care which one it is.
   QuickBooks-backed screens.
 - **KPI, done.** `/admin/kpi` keeps v1's two tabs. Location Settings is the
   board's opt-in: a switch for `kpiActive`, the year's OER score, and a search
-  over every property. Saved Lists lists the shared subsets and can remove one.
+  over every property. Saved Lists creates, renames, re-picks and removes the
+  shared subsets — the board no longer writes them, so a list with one wrong
+  property is fixed rather than deleted and rebuilt.
 - **Investor Portal, done.** `/admin/investors` is v1's five tabs. Investors
   associates QuickBooks equity accounts (with a holdings preview), Locations
   edits status, the QuickBooks link, the manual inputs and the notes, Documents
@@ -295,7 +298,8 @@ has to care which one it is.
 - **The public QR pages are this app's**, at v1's paths: `/qr/[id]` asks the API
   where the code points and sends the visitor on, `/qr/[id]/kiosk` draws it large
   on white. They are why a printed sign never has to be reprinted for a backend
-  change — the code encodes the app's hostname (`QR_PUBLIC_BASE_URL`), and the API
+  change — the code encodes the app's hostname (a constant in the backend's
+  `qr.ts`, not an environment variable), and the API
   is only asked two questions behind the scenes. Both render without a session —
   the root navigator skips the session check on those paths.
 - **Kiosk Connect admin, done.** `/admin/kiosk` has v1's Devices and Media
