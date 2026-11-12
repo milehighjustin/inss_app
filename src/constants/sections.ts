@@ -3,6 +3,7 @@ import type { Href } from 'expo-router';
 import {
   CONNECT_ROLES,
   KPI_ROLES,
+  SUPPORT_ROLES,
   hasAccess,
   hasAnyRole,
   type AccessModel,
@@ -52,6 +53,10 @@ export const SECTIONS: AppSection[] = [
   // itself, not on v1's "investor" shell model, exactly as its pages do.
   { name: 'portfolio', href: '/investor', label: 'Portfolio', requiresRole: 'investor' },
   { name: 'files', href: '/investor/files', label: 'Files', requiresRole: 'investor' },
+  // The support group's panel: the shift that turns alerts on, and the numbers
+  // the shift produced. Administrators, managers and supervisors keep their way
+  // in because the performance report moved here.
+  { name: 'support', href: '/support', label: 'Support', requiresRoles: SUPPORT_ROLES },
   { name: 'admin', href: '/admin', label: 'Admin', requiresRole: 'administrator' },
   { name: 'account', href: '/account', label: 'Account' },
 ];

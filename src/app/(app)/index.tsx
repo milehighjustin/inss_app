@@ -5,7 +5,7 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { MetroBanner, MetroButton, MetroScreen, Tile } from '@/components/metro';
 import { AppName } from '@/constants/app';
 import { Metrics, tileField } from '@/constants/metro';
-import { KPI_ROLES, hasAnyRole } from '@/lib/auth/roles';
+import { KPI_ROLES, SUPPORT_ROLES, hasAnyRole } from '@/lib/auth/roles';
 import { useAuth } from '@/lib/auth/session';
 import { desktopPushStatus, desktopPushSupported } from '@/lib/push/browser';
 import { phonePushStatus, phonePushSupported } from '@/lib/push/phone';
@@ -31,6 +31,7 @@ export default function HomeScreen() {
 
   const roles = user?.roles;
   const showKpi = hasAnyRole(roles, KPI_ROLES);
+  const showSupport = hasAnyRole(roles, SUPPORT_ROLES);
   const showInvestor = roles?.includes('investor') ?? false;
 
   return (
@@ -52,6 +53,14 @@ export default function HomeScreen() {
             subtitle="Facility performance"
             size={field.size}
             onPress={() => router.push('/kpi')}
+          />
+        ) : null}
+        {showSupport ? (
+          <Tile
+            title="Support"
+            subtitle="Your session"
+            size={field.size}
+            onPress={() => router.push('/support')}
           />
         ) : null}
         {showInvestor ? (

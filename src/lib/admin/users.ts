@@ -49,6 +49,9 @@ export const ASSIGNABLE_ROLES = [
   'administrator',
   'developer',
   'manager',
+  // The support group: the role that puts the Support tile on someone's home
+  // screen and lets them open a session.
+  'support',
   'supervisor',
   'investor',
 ] as const;
@@ -133,7 +136,14 @@ export async function updateUser(userId: string, patch: UpdateUserInput): Promis
   return user;
 }
 
-export type UserFilter = 'all' | 'administrator' | 'supervisor' | 'manager' | 'investor' | 'inactive';
+export type UserFilter =
+  | 'all'
+  | 'administrator'
+  | 'supervisor'
+  | 'manager'
+  | 'support'
+  | 'investor'
+  | 'inactive';
 export type UserSort = 'lastNameAZ' | 'lastNameZA';
 
 export const FILTER_OPTIONS: { value: UserFilter; label: string }[] = [
@@ -141,6 +151,7 @@ export const FILTER_OPTIONS: { value: UserFilter; label: string }[] = [
   { value: 'administrator', label: 'Administrators' },
   { value: 'supervisor', label: 'Supervisors' },
   { value: 'manager', label: 'Managers' },
+  { value: 'support', label: 'Support team' },
   { value: 'investor', label: 'Investors' },
   { value: 'inactive', label: 'Inactive' },
 ];

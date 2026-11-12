@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -11,9 +12,9 @@ import {
   MetroPivot,
   MetroScreen,
   MetroSection,
+  useMetro,
   type MetroFigure,
 } from '@/components/metro';
-import { useMetro } from '@/components/metro/use-metro';
 import { Spacing } from '@/constants/metro';
 import {
   fetchPerformance,
@@ -22,10 +23,10 @@ import {
   type PerformanceReport,
 } from '@/lib/admin/performance';
 import { roleLabel } from '@/lib/admin/users';
-import { AdminPivot } from './admin-pivot';
+import { SupportPivot } from './support-pivot';
 
 /**
- * Admin → Performance.
+ * Support → Performance.
  *
  * The question this answers is not "how many alerts did we send" — the
  * notification log already does that — but "is the desk covered, and who is
@@ -35,6 +36,9 @@ import { AdminPivot } from './admin-pivot';
  * `held` is deliberately its own number. An alert held because the person who
  * should have got it was already on a call is not a missed alert, and collapsing
  * the two would make a busy day look like a careless one.
+ *
+ * A person row opens their sessions, which is how a weak answer rate becomes a
+ * shift you can look at rather than a number you can only suspect.
  */
 
 const RANGES = [
@@ -43,7 +47,7 @@ const RANGES = [
   { value: '90', label: '90 days' },
 ];
 
-export function PerformanceScreen() {
+export function SupportPerformanceScreen() {
   const theme = useMetro();
   const [days, setDays] = useState('30');
   const [report, setReport] = useState<PerformanceReport | null>(null);
@@ -94,11 +98,11 @@ export function PerformanceScreen() {
 
   return (
     <MetroScreen
-      eyebrow="Admin"
+      eyebrow="Support"
       title="Performance"
       subtitle="Whether the desk answers, how fast, and what the calls add up to."
       width="wide">
-      <AdminPivot />
+      <SupportPivot />
 
       <MetroPivot tabs={RANGES} value={days} onChange={setDays} />
 
@@ -112,7 +116,7 @@ export function PerformanceScreen() {
 
           <MetroSection
             title="People"
-            hint="Everyone the alerts reached, worst coverage first.">
+            hint="Everyone the alerts reached, worst coverage first. Open a person for their sessions.">
             {report.people.length === 0 ? (
               <MetroEmpty
                 title="Nothing yet"
@@ -134,6 +138,12 @@ export function PerformanceScreen() {
                       .filter(Boolean)
                       .join(' · ')}
                     emphasis
+                    onPress={() =>
+                      router.push({
+                        pathname: '/support/sessions',
+                        params: { userId: person.userId, name: person.name },
+                      })
+                    }
                     accessory={
                       <View style={styles.trailing}>
                         <Text style={[styles.trailingValue, { color: theme.text }]}>

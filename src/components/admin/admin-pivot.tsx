@@ -11,6 +11,9 @@ import { MetroPivot } from '@/components/metro';
  * (location settings and saved lists), the Investor Portal (investors,
  * locations, documents, equity, dividends), Kiosk Connect, QR codes, and the
  * integrations.
+ *
+ * Performance is not here: it lives in the Support panel, with the sessions its
+ * numbers are cut from. `/admin/performance` still exists as a redirect.
  */
 const TABS = [
   { value: '/admin', label: 'Users' },
@@ -19,7 +22,6 @@ const TABS = [
   { value: '/admin/kiosk', label: 'Kiosk Connect' },
   { value: '/admin/qr', label: 'QR Codes' },
   { value: '/admin/notifications', label: 'Notifications' },
-  { value: '/admin/performance', label: 'Performance' },
   { value: '/admin/integrations', label: 'Integrations' },
 ];
 

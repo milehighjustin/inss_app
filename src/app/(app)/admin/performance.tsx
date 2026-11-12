@@ -1,6 +1,9 @@
-import { PerformanceScreen } from '@/components/admin/performance-screen';
+import { Redirect } from 'expo-router';
 
-/** Admin → Performance. */
+/**
+ * Performance moved into the Support panel. The old link redirects rather than
+ * 404s: it was in the admin tab row and in whatever people had bookmarked.
+ */
 export default function AdminPerformanceScreen() {
-  return <PerformanceScreen />;
+  return <Redirect href="/support/performance" />;
 }

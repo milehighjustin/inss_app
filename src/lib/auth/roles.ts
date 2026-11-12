@@ -24,6 +24,18 @@ export type AccessModel =
 export const KPI_ROLES = ['administrator', 'manager', 'supervisor'] as const;
 
 /**
+ * The Support panel's audience.
+ *
+ * `support` is the group an administrator adds someone to — it is what puts the
+ * tile on their home screen. The other three are here because the performance
+ * report lives in this panel now and they could read it from Admin before.
+ */
+export const SUPPORT_ROLES = ['support', 'administrator', 'manager', 'supervisor'] as const;
+
+/** Who may read every session, not only their own. */
+export const SESSION_STAFF_ROLES = ['administrator', 'manager', 'supervisor'] as const;
+
+/**
  * Kiosk Connect's audience — the console and the admin that maintains the
  * devices. v1's nav lists it for administrators, developers, managers and
  * supervisors, the same set the API accepts on the token route.
