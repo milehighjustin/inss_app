@@ -10,11 +10,12 @@ import {
   MetroError,
   MetroField,
   MetroFigures,
+  MetroBoardPage,
   MetroList,
+  MetroListArea,
   MetroListRow,
   MetroLoading,
   MetroPanel,
-  MetroScreen,
   MetroSection,
   MetroToggle,
   type MetroFigure,
@@ -102,7 +103,7 @@ export function QrAdmin() {
   };
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin"
       title="QR Codes"
       subtitle="Each code is a fixed id that forwards somewhere you can change later."
@@ -112,6 +113,7 @@ export function QrAdmin() {
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
 
+      <MetroListArea>
       <AdminToolbar
         count={`${visible.length} of ${codes.length}`}
         actions={
@@ -194,7 +196,8 @@ export function QrAdmin() {
           }}
         />
       ) : null}
-    </MetroScreen>
+      </MetroListArea>
+    </MetroBoardPage>
   );
 }
 

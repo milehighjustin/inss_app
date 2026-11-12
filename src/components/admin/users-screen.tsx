@@ -4,15 +4,16 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import {
   MetroBanner,
+  MetroBoardPage,
   MetroButton,
   MetroEmpty,
   MetroError,
   MetroField,
   MetroFigures,
   MetroList,
+  MetroListArea,
   MetroListRow,
   MetroLoading,
-  MetroScreen,
   MetroSelect,
   type MetroFigure,
 } from '@/components/metro';
@@ -121,7 +122,7 @@ export function UsersAdmin() {
   ];
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin"
       title="Users"
       subtitle={
@@ -177,6 +178,7 @@ export function UsersAdmin() {
         </View>
       </View>
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading users" />
       ) : error ? (
@@ -211,6 +213,7 @@ export function UsersAdmin() {
           })}
         </MetroList>
       )}
+      </MetroListArea>
 
       <CreateUserSheet
         visible={createOpen}
@@ -226,7 +229,7 @@ export function UsersAdmin() {
           void load('refresh');
         }}
       />
-    </MetroScreen>
+    </MetroBoardPage>
   );
 }
 

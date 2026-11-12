@@ -4,15 +4,16 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   MetroBanner,
   MetroBadge,
+  MetroBoardPage,
   MetroButton,
   MetroCheckbox,
   MetroError,
   MetroField,
   MetroFigures,
+  MetroListArea,
   MetroLoading,
   MetroPivot,
   MetroRadioGroup,
-  MetroScreen,
   MetroSection,
   MetroSheet,
   MetroTextArea,
@@ -90,7 +91,7 @@ export function NotificationsAdmin() {
   ];
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin"
       title="Notifications"
       subtitle="Who hears about what, and what has been sent."
@@ -113,6 +114,7 @@ export function NotificationsAdmin() {
         onChange={(value) => setTab(value === 'send' ? 'send' : 'tags')}
       />
 
+      <MetroListArea>
       {loading && tags.length === 0 ? (
         <MetroLoading label="Loading tags…" />
       ) : tab === 'tags' ? (
@@ -138,7 +140,8 @@ export function NotificationsAdmin() {
         A send goes to every device the tagged accounts have turned alerts on: browsers directly,
         phones through Azure Notification Hubs.
       </Text>
-    </MetroScreen>
+      </MetroListArea>
+    </MetroBoardPage>
   );
 }
 

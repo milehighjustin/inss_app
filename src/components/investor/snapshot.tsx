@@ -334,7 +334,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   footnote: {
-    borderTopWidth: 1,
     paddingTop: Spacing.three,
     gap: Spacing.two,
     maxWidth: 720,

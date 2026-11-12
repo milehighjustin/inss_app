@@ -35,9 +35,9 @@ const BASIS = 220;
 const BASIS_MEDIUM = 160;
 
 /**
- * The headline numbers of a page, held between two rules.
+ * The headline numbers of a page.
  *
- * No boxes: the band is a rule above and below, an eyebrow label, a number and a
+ * No boxes and no rules: the band is space, an eyebrow label, a number and a
  * note. Figures sit on shared columns and wrap as the window narrows; a hairline
  * separates the ones beside each other, and a figure that starts a wrapped row
  * starts clean. This is the same band on the portfolio, a property and a
@@ -57,9 +57,7 @@ export function MetroFigures({ figures, size = 'large', style }: MetroFiguresPro
       : figures.length;
 
   return (
-    <View
-      style={[styles.band, { borderColor: theme.border }, style]}
-      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+    <View style={[styles.band, style]} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       {figures.map((figure, index) => {
         const divided = index % columns !== 0;
         const color =
@@ -104,8 +102,6 @@ export function MetroFigures({ figures, size = 'large', style }: MetroFiguresPro
 
 const styles = StyleSheet.create({
   band: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     rowGap: Spacing.four,

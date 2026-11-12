@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBanner,
+  MetroBoardPage,
   MetroButton,
   MetroCheckbox,
   MetroDialog,
@@ -11,11 +12,11 @@ import {
   MetroField,
   MetroFigures,
   MetroList,
+  MetroListArea,
   MetroListRow,
   MetroLoading,
   MetroPanel,
   MetroPivot,
-  MetroScreen,
   MetroSection,
   MetroToggle,
   type MetroFigure,
@@ -49,15 +50,17 @@ export function KpiAdmin() {
   const [tab, setTab] = useState('locations');
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin"
       title="KPI"
       subtitle="Which properties are on the board, their OER scores, and the saved lists everyone shares."
       width="wide">
       <AdminPivot />
       <MetroPivot tabs={TABS} value={tab} onChange={setTab} />
-      {tab === 'locations' ? <KpiLocationSettings /> : <SavedLists />}
-    </MetroScreen>
+      <MetroListArea>
+        {tab === 'locations' ? <KpiLocationSettings /> : <SavedLists />}
+      </MetroListArea>
+    </MetroBoardPage>
   );
 }
 

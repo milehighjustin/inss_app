@@ -3,14 +3,15 @@ import { AppState, Linking, Platform, StyleSheet, Text, View, useWindowDimension
 
 import {
   MetroBanner,
+  MetroBoardPage,
   MetroButton,
   MetroEmpty,
   MetroError,
   MetroFigures,
   MetroList,
+  MetroListArea,
   MetroListRow,
   MetroLoading,
-  MetroScreen,
   useMetro,
   type MetroBannerTone,
   type MetroFigure,
@@ -184,7 +185,7 @@ export function IntegrationsAdmin() {
   ];
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin"
       title="Integrations"
       subtitle={
@@ -231,6 +232,7 @@ export function IntegrationsAdmin() {
         />
       ) : null}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Checking QuickBooks" />
       ) : error ? (
@@ -292,7 +294,8 @@ export function IntegrationsAdmin() {
           </View>
         </>
       )}
-    </MetroScreen>
+      </MetroListArea>
+    </MetroBoardPage>
   );
 }
 

@@ -26,7 +26,7 @@ export function MetroPivot({ tabs, value, onChange }: MetroPivotProps) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={[styles.root, { borderBottomColor: theme.border }]}
+      style={styles.root}
       contentContainerStyle={styles.content}>
       {tabs.map((tab) => {
         const active = tab.value === value;
@@ -54,7 +54,9 @@ export function MetroPivot({ tabs, value, onChange }: MetroPivotProps) {
 
 const styles = StyleSheet.create({
   root: {
-    borderBottomWidth: 1,
+    // No baseline rule: the accent bar under the active tab is the only line a
+    // pivot needs, and a full-width rule under every tab row was just another
+    // hairline between the header and the content.
     // A bare ScrollView grows to fill a flex column, which pushed the tab
     // content it sits above to the bottom of the screen. The tab row keeps its
     // own height and nothing else.

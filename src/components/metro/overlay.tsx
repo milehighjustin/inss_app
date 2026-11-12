@@ -269,7 +269,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingHorizontal: Metrics.gutter,
     paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
   },
   panelHeaderText: {
     flex: 1,

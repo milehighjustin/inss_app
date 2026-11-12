@@ -148,9 +148,9 @@ function TopBar({ menuOpen, onOpenMenu }: { menuOpen: boolean; onOpenMenu: () =>
 /**
  * Left-hand nav, opened from the top bar on every screen.
  *
- * The panel is a flat colour plane with hairline separators and an accent bar
- * on the current section. It is positioned above the scrim so taps land on the
- * links, not the backdrop.
+ * The panel is a flat colour plane with square corners and an accent bar on the
+ * current section. It is positioned above the scrim so taps land on the links,
+ * not the backdrop.
  */
 function MenuDrawer({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const theme = useMetro();
@@ -197,7 +197,7 @@ function MenuDrawer({ visible, onClose }: { visible: boolean; onClose: () => voi
               borderRightColor: theme.border,
             },
           ]}>
-          <View style={[styles.drawerHeader, { borderBottomColor: theme.border }]}>
+          <View style={styles.drawerHeader}>
             <Text style={[styles.drawerBrand, { color: theme.textDim }]}>
               {AppName.toUpperCase()}
             </Text>
@@ -228,8 +228,8 @@ function MenuDrawer({ visible, onClose }: { visible: boolean; onClose: () => voi
                   style={({ pressed }) => [
                     styles.drawerLink,
                     {
-                      // The current section is a soft filled row now, not a bare
-                      // underline: a rounded highlight reads as the page you are on.
+                      // The current section is a filled row: a block of colour
+                      // reads as the page you are on without drawing a rule.
                       backgroundColor: current || pressed ? theme.surface : 'transparent',
                     },
                   ]}>
@@ -280,7 +280,6 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 34,
     height: 34,
-    borderRadius: Radius.control,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
@@ -334,17 +333,14 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 1,
     borderRightWidth: 1,
-    // A floating panel now that the language has soft corners: it reads as
-    // something laid over the app rather than a slice cut out of it.
-    borderTopRightRadius: Radius.card + 6,
-    borderBottomRightRadius: Radius.card + 6,
+    // Square, like every other plane the app lays over itself: the drawer is a
+    // slice of the shell, not a card floating on the page.
     boxShadow: Shadow.overlay,
   },
   drawerHeader: {
     paddingHorizontal: Metrics.gutter,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.two,
-    borderBottomWidth: 1,
     gap: 2,
   },
   drawerBrand: {
@@ -372,12 +368,10 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingLeft: 12,
     paddingRight: 12,
-    borderRadius: Radius.control,
   },
   drawerMarker: {
     width: 3,
     alignSelf: 'stretch',
-    borderRadius: Radius.pill,
     marginRight: 10,
   },
   drawerLabel: {

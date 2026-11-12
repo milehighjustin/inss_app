@@ -17,9 +17,10 @@ export interface MetroSectionProps {
 /**
  * A titled group — v1's SectionBlock.
  *
- * The heading carries the hierarchy and a hairline closes the section; there is
- * no box, no fill and no shadow, per METRO.md. Used by the admin panels, which
- * are long forms where every group needs its own label.
+ * The heading carries the hierarchy and space closes the section; there is no
+ * box, no fill, no shadow and no closing rule, per METRO.md — a rule under every
+ * group turns a form into a stack of lines. Used by the admin panels, which are
+ * long forms where every group needs its own label.
  */
 export function MetroSection({ title, hint, accessory, children }: MetroSectionProps) {
   const theme = useMetro();
@@ -40,7 +41,6 @@ export function MetroSection({ title, hint, accessory, children }: MetroSectionP
         </View>
       ) : null}
       <View style={styles.body}>{children}</View>
-      <View style={[styles.rule, { backgroundColor: theme.border }]} />
     </View>
   );
 }
@@ -70,9 +70,5 @@ const styles = StyleSheet.create({
   },
   body: {
     gap: Spacing.two,
-  },
-  rule: {
-    height: 1,
-    marginTop: Spacing.two,
   },
 });

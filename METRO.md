@@ -75,25 +75,37 @@ Set it with `width="wide"` on `MetroScreen` and leave everything else at the def
 
 ## Boards
 
-A dashboard must not scroll the page on a wide screen. The row at the bottom is usually the one somebody is watching, and a page that scrolls keeps it off screen. Build it as a board instead:
+A page must not scroll on a wide screen. The row at the bottom is usually the one somebody is watching, and a page that scrolls keeps it off screen. Build it as a board instead, with `MetroBoardPage` and one `MetroListArea` for the part that genuinely needs to scroll:
 
 ```tsx
-<MetroScreen scroll={false} padding="compact" contentStyle={{ flex: 1 }} width="wide">
+<MetroBoardPage eyebrow="Admin" title="Users" width="wide">
+  <AdminPivot />
+  <MetroListArea>{users}</MetroListArea>
+</MetroBoardPage>
+```
+
+```tsx
+<MetroBoardPage eyebrow="Admin" title="Support" width="wide">
   <MetroBoard>
     <MetroPane grow={1.6}>{mainList}</MetroPane>
     <MetroPane grow={1}>{sidePanel}</MetroPane>
   </MetroBoard>
-</MetroScreen>
+</MetroBoardPage>
 ```
 
-- `MetroBoard` is a fixed-height row; `MetroPane` is a column that scrolls inside itself.
+- `MetroBoardPage` is `MetroScreen` fixed to the viewport above `BOARD_BREAKPOINT` (900, one number for the whole app) and an ordinary scrolling page below it. Never set `scroll` by hand on it.
+- `MetroListArea` is the one region of a board that scrolls — a list, or a form long enough to need it. On a phone it renders a fragment, because the page already scrolls there and a nested scroll area would trap the drag.
+- `MetroBoard` is a fixed-height row; `MetroPane` is a column that scrolls inside itself. Use `MetroListArea` alone when there is one list and no second column.
 - `grow` is a flex weight — give the working area more width than the reference panels.
-- Pick a breakpoint (900 is the house default) and fall back to an ordinary stacked, scrolling page below it. A phone has no second column to spend, so stacking there is correct rather than lazy.
+- Everything above `MetroListArea` stays put: heading, pivot, figures, search and filters. A control that scrolls away is a control nobody finds twice.
+- Every admin section follows this shape. If a screen can push the page taller than the window at 900px and up, it is not finished.
 - Keep the page heading short on a board: `eyebrow` and `title`, and put the explanation in the panes' hints. Every line of chrome is a row of data lost.
 
 ## Navigation
 
 The app has no tab row. A menu button in the top bar opens one drawer, mounted at the shell, so the nav is reachable from every signed-in screen. Sections come from `src/constants/sections.ts`.
+
+The drawer is **square**: a full-height plane with no corner radius, square link rows, and one accent bar on the current section. A radius would make it a floating card laid over the app, which is not what it is — it is a slice of the shell.
 
 The top bar is **compact by rule**:
 
@@ -150,13 +162,25 @@ No other shapes are in the vocabulary. A tile that can't hold words shouldn't ex
 - Avoid abbreviations that confuse readers
 - Title case is NOT used — sentence case is the Metro way
 
+## Rules
+
+A horizontal rule is a last resort, not the language's texture. A screen with one under every heading, around every band and between every block reads as ruled paper, and the rules stop meaning anything.
+
+A rule is allowed in exactly three places:
+
+- **the top bar's lower edge**, because content scrolls under it
+- **between the rows of a list**, where the row is the unit being scanned
+- **inside a table**, where rules hold columns together (see Statements And Data Sheets)
+
+Everywhere else, separate with space. `MetroSection` closes on space, `MetroHeading` is uppercase only, `MetroFigures` is a band of space, and a pivot draws its line under the current tab only. Do not add a rule to a form group, a figure band, a footnote, a panel header or the drawer.
+
 ## Charts
 
 A chart is data, not chrome, so it is the one place more than one hue is allowed: adjacent slices of a pie have to be told apart. Charts use the fixed allocation palette in `src/components/investor/allocation-pie.tsx` — the same colours v1 used, so the chart reads the same as it always did. The legend and any alternate view of the same data carry those colours too. Everything around the chart (headings, totals, labels, the toggle) stays in the normal type and accent palette, and no other kind of view gets a second colour.
 
 ## Figures
 
-A page's headline numbers go in one band between two hairlines — `MetroFigures` in `src/components/metro/figures.tsx`. Each figure is an uppercase eyebrow label, the number in the figure or subheader size, and one line of context under it. No boxes: the band is the rule above and below, and a hairline separates figures standing side by side.
+A page's headline numbers go in one band — `MetroFigures` in `src/components/metro/figures.tsx`. Each figure is an uppercase eyebrow label, the number in the figure or subheader size, and one line of context under it. No boxes and no rules: the band is space, and a hairline separates figures standing side by side.
 
 - `size="large"` for the two or three numbers that are the reason the screen exists (the portfolio's invested equity, value and dividends).
 - `size="medium"` for a band of four, where the numbers are evidence rather than headline (a facility's four key metrics).
@@ -168,7 +192,7 @@ A page's headline numbers go in one band between two hairlines — `MetroFigures
 The admin sections share one page shape, so moving between them feels like the same app:
 
 - A list page opens with its figures band — what the set is, before the rows — then one toolbar strip: the count, the search, and the actions pushed to the right. That strip is `AdminToolbar` in `src/components/admin/admin-toolbar.tsx`; do not hand-roll another order.
-- Panels are for one record and are built from `MetroSection` (a heading, a hint, a hairline), with an eyebrow-only `MetroHeading` where the block is a short fact list rather than a form.
+- Panels are for one record and are built from `MetroSection` (a heading and a hint, closed by space), with an eyebrow-only `MetroHeading` where the block is a short fact list rather than a form. Neither draws a rule.
 - An action inside a row uses `MetroButton size="compact"`. A full 48-point button in a list row makes every row look like a form; the row must stay a row.
 - A value that is the point of the row — a balance, a total — uses `MetroListRow emphasis`, so it reads in the text colour with tabular digits instead of as a quiet caption.
 
@@ -188,6 +212,7 @@ Any table of figures is set like a statement, not a grid of boxes:
 - `Radius.tile = 0` — tiles only, and the only square corner left in the app
 - `Radius.card = 14` and `Radius.control = 10` — planes and interactive elements
 - `Radius.pill = 999` and `Radius.round = 999` — pills, markers and circles
+- Buttons are as wide as their label: `MetroButton` sets `alignSelf` to `flex-start` and only a phone (below `Metrics.desktop`) stretches it to the column. Don't hand-size a button to fill a desktop layout — a full-width button reads as a banner, not an action.
 - Shadows come from `Shadow`, never from a hand-written `boxShadow`
 - The `Tile` component automatically applies the correct radius via `styles.tile.borderRadius: Radius.card`
 - When custom styling, always reference `Radius.card` or `Radius.control`, never hardcode `0`

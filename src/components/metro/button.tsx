@@ -1,4 +1,11 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  type ViewStyle,
+} from 'react-native';
 
 import { MetroType, Metrics, Radius, type MetroColorName } from '@/constants/metro';
 import { useMetro } from './use-metro';
@@ -30,7 +37,22 @@ export function MetroButton({
   style,
 }: MetroButtonProps) {
   const theme = useMetro();
+  const { width } = useWindowDimensions();
   const inactive = disabled || loading;
+
+  /**
+   * A button is as wide as its label — everywhere except a phone.
+   *
+   * Stretched across a desktop window it stops reading as a button and starts
+   * reading as a banner, with its label a hand's width from whatever it acts on.
+   * On a phone the full width is what makes it a comfortable target, so there it
+   * keeps the column. `Metrics.desktop` is the same line the tile field uses,
+   * so a button and the form around it never disagree about what a phone is.
+   *
+   * A caller that really needs the full width can still pass it in `style`,
+   * which is applied last.
+   */
+  const fullWidth = width < Metrics.desktop;
 
   return (
     <Pressable
@@ -46,6 +68,7 @@ export function MetroButton({
             variant === 'primary' ? theme[color] : pressed ? theme.surface : 'transparent',
           borderColor: variant === 'ghost' ? theme.border : 'transparent',
           opacity: inactive ? 0.5 : 1,
+          alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         style,
       ]}>

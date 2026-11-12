@@ -34,10 +34,12 @@ export interface MetroHeadingProps {
 }
 
 /**
- * How a data block opens: a small uppercase heading with a hairline under it.
+ * How a data block opens: a small uppercase heading.
  *
  * Used where a full `MetroSection` would be too grand — the property panel, a
- * facility's metric groups — so blocks stay separated by rules rather than boxes.
+ * facility's metric groups. It carries no rule: uppercase plus space is enough
+ * hierarchy, and a hairline under every heading is what made the screens read as
+ * ruled paper.
  */
 export function MetroHeading({ children, accessory }: MetroHeadingProps) {
   const theme = useMetro();
@@ -50,7 +52,6 @@ export function MetroHeading({ children, accessory }: MetroHeadingProps) {
         </Text>
         {accessory}
       </View>
-      <View style={{ height: 1, backgroundColor: theme.border }} />
     </View>
   );
 }

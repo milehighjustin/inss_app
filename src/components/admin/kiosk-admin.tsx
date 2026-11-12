@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBanner,
+  MetroBoardPage,
   MetroButton,
   MetroDialog,
   MetroEmpty,
@@ -12,11 +13,11 @@ import {
   MetroFigures,
   MetroLabel,
   MetroList,
+  MetroListArea,
   MetroListRow,
   MetroLoading,
   MetroPanel,
   MetroPivot,
-  MetroScreen,
   MetroSection,
   MetroSelect,
   type MetroFigure,
@@ -69,15 +70,17 @@ export function KioskAdmin() {
   const [tab, setTab] = useState('devices');
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin"
       title="Kiosk Connect"
       subtitle="The screens in the field, what each one plays, and the media they draw from."
       width="wide">
       <AdminPivot />
       <MetroPivot tabs={TABS} value={tab} onChange={setTab} />
-      {tab === 'devices' ? <DevicesAdmin /> : <MediaAdmin />}
-    </MetroScreen>
+      <MetroListArea>
+        {tab === 'devices' ? <DevicesAdmin /> : <MediaAdmin />}
+      </MetroListArea>
+    </MetroBoardPage>
   );
 }
 

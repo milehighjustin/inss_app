@@ -12,7 +12,8 @@ import {
   MetroField,
   MetroHeading,
   MetroLoading,
-  MetroScreen,
+  MetroBoardPage,
+  MetroListArea,
   useMetro,
 } from '@/components/metro';
 import { MetroType, Spacing } from '@/constants/metro';
@@ -220,7 +221,7 @@ export function UserDetail({ userId }: { userId: string }) {
   const isSelf = user?.userId === signedInUser?.userId;
 
   return (
-    <MetroScreen
+    <MetroBoardPage
       eyebrow="Admin · Users"
       title={user ? displayName(user) : 'User'}
       subtitle={user?.email || user?.username || undefined}
@@ -229,6 +230,7 @@ export function UserDetail({ userId }: { userId: string }) {
         <MetroBanner message={notice.message} tone={notice.tone} onDismiss={() => setNotice(null)} />
       ) : null}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading user" />
       ) : error ? (
@@ -400,6 +402,7 @@ export function UserDetail({ userId }: { userId: string }) {
           </View>
         </>
       )}
+      </MetroListArea>
 
       <MetroDialog
         visible={confirm !== null}
@@ -419,7 +422,7 @@ export function UserDetail({ userId }: { userId: string }) {
           { label: 'Cancel', variant: 'ghost', onPress: () => setConfirm(null) },
         ]}
       />
-    </MetroScreen>
+    </MetroBoardPage>
   );
 }
 
