@@ -91,19 +91,31 @@ desktop alerts. Without it a browser will not offer to install the app at all.
   safe circle — rather than a copy of `icon.png`, whose mark reaches 90% of the
   radius and would lose its tips.
 
-Regenerating the icons after the artwork changes:
+### Icons
+
+`assets/inss.webp` is the artwork. Every icon — the App Store tile, the Android
+adaptive layers, the PWA set, the favicons, the notification masks and the
+splash mark — is derived from it by one script:
 
 ```bash
-sips -z 192 192 assets/images/icon.png --out public/icon-192.png
-sips -z 512 512 assets/images/icon.png --out public/icon-512.png
-sips -z 180 180 assets/images/icon.png --out public/apple-touch-icon.png
-sips -z 32 32 assets/images/icon.png --out public/favicon-32.png
-sips -z 16 16 assets/images/icon.png --out public/favicon-16.png
+python3 scripts/make-icons.py
 ```
 
-The maskable 512 is the mark from `android-icon-monochrome.png` tinted white on
-`#208AEF`; it was rendered rather than resized, so redo it the same way by hand
-if the mark changes.
+It crops the badge out of the wide white canvas first, then writes each file at
+the fraction of the tile that platform crops safely (adaptive 66%, maskable safe
+circle), and prints what it produced. Three kinds come out of it, and the
+difference is not cosmetic:
+
+- **Opaque tiles** — vice recognise, `RGB` with no alpha channel. Apple rejects
+  an app icon that carries one.
+- **Adaptive foreground and monochrome** — transparent, so the launcher's own
+  background and its themed-icon tint show through.
+- **Silhouettes** — one colour on transparent, for the notification icons (Android
+  tints them itself) and the splash mark (white, on the accent field).
+
+The source is 77×81, so a 1024 tile is upscaled about 13× and looks soft at large
+sizes. Replace `assets/inss.webp` with a 1024px or vector original and re-run the
+script — nothing else needs to change.
 
 ## Where things live
 
