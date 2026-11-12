@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MetroType, Metrics, Radius, Spacing } from '@/constants/metro';
+import { MetroType, Metrics, Radius, Shadow, Spacing } from '@/constants/metro';
 import { MetroButton, type MetroButtonProps } from './button';
 import { useMetro } from './use-metro';
 
@@ -22,8 +22,9 @@ export interface MetroSheetProps {
 }
 
 /**
- * Bottom sheet. Square panel, flat colour, no shadow — the scrim does the
- * separating. Used for option pickers and small forms.
+ * Bottom sheet. A soft-cornered plane lifted off the page by one shadow: it is
+ * something laid over the app, so it is allowed to float. Used for option
+ * pickers and small forms.
  */
 export function MetroSheet({
   visible,
@@ -39,7 +40,8 @@ export function MetroSheet({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.sheetRoot}>
         <Scrim onClose={onClose} />
-        <View style={[styles.sheet, { backgroundColor: theme.background }]}>
+        <View
+          style={[styles.sheet, { backgroundColor: theme.background, boxShadow: Shadow.overlay }]}>
           <View style={[styles.sheetGrabber, { backgroundColor: theme.border }]} />
           {/*
             The body scrolls, and the sheet is bounded, because the things that
@@ -106,6 +108,7 @@ export function MetroPanel({
             {
               backgroundColor: theme.background,
               borderColor: theme.border,
+              boxShadow: Shadow.overlay,
               paddingTop: insets.top > 0 ? insets.top : 0,
               paddingBottom: insets.bottom > 0 ? insets.bottom : 0,
             },
@@ -161,7 +164,8 @@ export function MetroDialog({ visible, title, message, actions, onClose }: Metro
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.dialogRoot}>
         <Scrim onClose={onClose} />
-        <View style={[styles.dialog, { backgroundColor: theme.background }]}>
+        <View
+          style={[styles.dialog, { backgroundColor: theme.background, boxShadow: Shadow.overlay }]}>
           <Text style={[styles.dialogTitle, { color: theme.text }]}>{title}</Text>
           {/* A dialog's message is usually one line, but a long one must scroll
               rather than push the buttons off the bottom of the screen. */}
@@ -213,8 +217,8 @@ const styles = StyleSheet.create({
     // Never taller than the window: the body scrolls inside this, in every
     // platform, so a long option list is reachable instead of clipped.
     maxHeight: '88%',
-    borderTopLeftRadius: Radius.card,
-    borderTopRightRadius: Radius.card,
+    borderTopLeftRadius: Radius.card + 6,
+    borderTopRightRadius: Radius.card + 6,
   },
   sheetScroll: {
     flexGrow: 0,
@@ -222,7 +226,8 @@ const styles = StyleSheet.create({
   },
   sheetGrabber: {
     height: 3,
-    width: 64,
+    width: 44,
+    borderRadius: Radius.pill,
     alignSelf: 'center',
     marginTop: 10,
   },
@@ -255,6 +260,8 @@ const styles = StyleSheet.create({
     maxWidth: 1040,
     maxHeight: '94%',
     borderWidth: 1,
+    borderRadius: Radius.card + 6,
+    overflow: 'hidden',
   },
   panelHeader: {
     flexDirection: 'row',
@@ -297,7 +304,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     maxHeight: '88%',
-    borderRadius: Radius.card,
+    borderRadius: Radius.card + 4,
     padding: Spacing.four,
     gap: Spacing.three,
   },

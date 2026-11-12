@@ -154,7 +154,9 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
               />
               <MetroListRow
                 title="Clicked"
-                subtitle={`${metrics.answered} answered · ${metrics.ignored} ignored`}
+                subtitle={`${metrics.answered} answered · ${metrics.ignored} ignored${
+                  metrics.claimed > 0 ? ` · ${metrics.claimed} taken from the board` : ''
+                }`}
                 value={String(metrics.clicked)}
                 emphasis
               />

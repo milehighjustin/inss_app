@@ -192,9 +192,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   badge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: Radius.control,
+    borderRadius: Radius.pill,
   },
   badgeText: {
     fontSize: 10,

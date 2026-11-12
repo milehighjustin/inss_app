@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMetro } from '@/components/metro';
 import { AppName } from '@/constants/app';
-import { MetroType, Metrics, Radius, Spacing } from '@/constants/metro';
+import { MetroType, Metrics, Radius, Shadow, Spacing } from '@/constants/metro';
 import { visibleSections, type AppSection } from '@/constants/sections';
 import { useAuth } from '@/lib/auth/session';
 
@@ -25,8 +25,9 @@ import { useAuth } from '@/lib/auth/session';
  * The drawer is mounted once at the shell, so it opens from any signed-in
  * screen — no tab row competing with the content.
  *
- * Metro rules apply: flat colour fields, square corners (only the avatar is a
- * circle), type-led hierarchy, the user's accent colour.
+ * The bar is deliberately short: a hairline of accent, one 44-point row, and
+ * who you are in two tight lines. It is chrome, not a page — the content below
+ * gets the height.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -82,7 +83,16 @@ function TopBar({ menuOpen, onOpenMenu }: { menuOpen: boolean; onOpenMenu: () =>
   const [menuHovered, setMenuHovered] = useState(false);
 
   return (
-    <View style={{ paddingTop: insets.top, backgroundColor: theme.background }}>
+    <View
+      style={[
+        styles.barShell,
+        {
+          paddingTop: insets.top,
+          backgroundColor: theme.background,
+          borderBottomColor: theme.border,
+          boxShadow: Shadow.bar,
+        },
+      ]}>
       <View style={[styles.accentLine, { backgroundColor: theme.accent }]} />
 
       <View style={styles.topBar}>
@@ -105,8 +115,11 @@ function TopBar({ menuOpen, onOpenMenu }: { menuOpen: boolean; onOpenMenu: () =>
           <View style={[styles.bar, { backgroundColor: theme.text }]} />
         </Pressable>
 
+        {/*
+          Two lines, not three: the app's name is in the drawer and on the home
+          screen's eyebrow, so repeating it here only made the bar taller.
+        */}
         <View style={styles.topBarText}>
-          <Text style={[styles.brand, { color: theme.textDim }]}>{AppName}</Text>
           <Text numberOfLines={1} style={[styles.who, { color: theme.text }]}>
             {name}
           </Text>
@@ -214,7 +227,11 @@ function MenuDrawer({ visible, onClose }: { visible: boolean; onClose: () => voi
                   }}
                   style={({ pressed }) => [
                     styles.drawerLink,
-                    { backgroundColor: pressed ? theme.surface : 'transparent' },
+                    {
+                      // The current section is a soft filled row now, not a bare
+                      // underline: a rounded highlight reads as the page you are on.
+                      backgroundColor: current || pressed ? theme.surface : 'transparent',
+                    },
                   ]}>
                   <View
                     style={[
@@ -246,58 +263,56 @@ const styles = StyleSheet.create({
   slot: {
     flex: 1,
   },
+  barShell: {
+    borderBottomWidth: 1,
+  },
   accentLine: {
-    height: 6,
+    height: 3,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: Metrics.gutter,
-    paddingVertical: 12,
+    paddingVertical: 6,
+    minHeight: Metrics.topBar,
   },
   menuButton: {
-    width: 44,
-    height: 44,
+    width: 34,
+    height: 34,
     borderRadius: Radius.control,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
   },
   bar: {
-    width: 22,
+    width: 16,
     height: 2,
   },
   topBarText: {
     flex: 1,
-    gap: 2,
-  },
-  brand: {
-    fontSize: MetroType.eyebrow.fontSize,
-    lineHeight: MetroType.eyebrow.lineHeight,
-    letterSpacing: MetroType.eyebrow.letterSpacing,
-    fontWeight: MetroType.eyebrow.fontWeight,
+    gap: 1,
   },
   who: {
-    fontSize: MetroType.subheader.fontSize,
-    lineHeight: MetroType.subheader.lineHeight,
-    fontWeight: MetroType.subheader.fontWeight,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: 600,
   },
   roles: {
-    fontSize: MetroType.subtle.fontSize,
-    lineHeight: MetroType.subtle.lineHeight,
-    fontWeight: MetroType.subtle.fontWeight,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: 500,
   },
   avatar: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: Radius.round,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: MetroType.body.fontSize,
-    fontWeight: 600,
+    fontSize: 12,
+    fontWeight: 700,
   },
   drawerRoot: {
     flex: 1,
@@ -319,11 +334,16 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 1,
     borderRightWidth: 1,
+    // A floating panel now that the language has soft corners: it reads as
+    // something laid over the app rather than a slice cut out of it.
+    borderTopRightRadius: Radius.card + 6,
+    borderBottomRightRadius: Radius.card + 6,
+    boxShadow: Shadow.overlay,
   },
   drawerHeader: {
     paddingHorizontal: Metrics.gutter,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
     borderBottomWidth: 1,
     gap: 2,
   },
@@ -343,17 +363,22 @@ const styles = StyleSheet.create({
   },
   drawerLinks: {
     paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.two,
+    gap: 2,
   },
   drawerLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingRight: Metrics.gutter,
+    paddingVertical: 11,
+    paddingLeft: 12,
+    paddingRight: 12,
+    borderRadius: Radius.control,
   },
   drawerMarker: {
-    width: 4,
+    width: 3,
     alignSelf: 'stretch',
-    marginRight: 12,
+    borderRadius: Radius.pill,
+    marginRight: 10,
   },
   drawerLabel: {
     fontSize: MetroType.body.fontSize,

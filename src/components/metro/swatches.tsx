@@ -24,11 +24,11 @@ export interface MetroSwatchesProps {
 }
 
 /**
- * A row of square colour chips, one selected.
+ * A row of colour chips, one selected.
  *
  * Metro has one accent colour, so this picks a single value rather than
- * several. Selected state is carried by a square outline plus a check, not by
- * a shadow; the chips wrap instead of scrolling so a phone still shows them all.
+ * several. Selected state is carried by an outline plus a check, not by a
+ * shadow; the chips wrap instead of scrolling so a phone still shows them all.
  */
 export function MetroSwatches({
   label,

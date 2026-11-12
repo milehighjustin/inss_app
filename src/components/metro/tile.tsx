@@ -111,7 +111,8 @@ export function Tile({
 
 const styles = StyleSheet.create({
   tile: {
-    borderRadius: Radius.card,
+    // Tiles are the one hard-edged thing left: Radius.tile is 0 on purpose.
+    borderRadius: Radius.tile,
     justifyContent: 'flex-start',
     gap: 6,
     overflow: 'hidden',

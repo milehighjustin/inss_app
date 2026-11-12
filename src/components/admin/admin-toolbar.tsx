@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   strip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    // The count is text among 52-point controls, so the strip centres on the
+    // The count is text among 48-point controls, so the strip centres on the
     // controls rather than hanging off their tops.
     alignItems: 'center',
     gap: Spacing.two,

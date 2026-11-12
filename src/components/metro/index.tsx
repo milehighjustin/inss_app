@@ -14,6 +14,7 @@ export { MetroButton, type MetroButtonProps } from './button';
 export { MetroRule, MetroLabel, MetroHeading, type MetroHeadingProps } from './primitives';
 export { MetroFigures, type MetroFigure, type MetroFiguresProps } from './figures';
 export { MetroScreen, type MetroScreenProps } from './screen';
+export { MetroBoard, MetroPane } from './board';
 export { MetroSection, type MetroSectionProps } from './section';
 
 export {

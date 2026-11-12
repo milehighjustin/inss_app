@@ -4,32 +4,49 @@ This document contains the design instructions for the Metro solution. It is int
 
 ## Philosophy
 
-Metro is a design language that originated from Windows Phone. Its core principles are:
+Metro is a design language that originated from Windows Phone. Its core principles still hold, with one deliberate revision:
 
-- **Flat colour fields** instead of gradients and shadows
-- **Type-driven hierarchy** — words carry the meaning, not boxes
-- **Squares instead of rounded corners** — the default is hard edges
-- **Large, readable type** — hierarchy is carried by font sizes and weights
-- **One accent colour** the user owns
+- **Flat colour fields** instead of gradients. Colour is still a plane, not a picture.
+- **Type-driven hierarchy** — words carry the meaning, not boxes.
+- **Square tiles, soft surfaces.** The tile grid keeps its hard station-wall edge; everything laid on top of it — cards, lists, inputs, buttons, sheets — has a small radius. Pure Metro read as boxy and unfinished next to a modern OS; the grid is what people recognise, not the sharpness of a text field.
+- **One soft elevation**, and only for things that float over the page.
+- **Large, readable type** — hierarchy is carried by font sizes and weights.
+- **One accent colour** the user owns.
+
+The intent is the wayfinding of a transit system: strong grid, clear signs, quiet surfaces between them. Not a Windows Phone screenshot.
 
 ## Corner Radii
 
-The entire Metro system uses only three radius values:
+The system uses five radius values, all from `Radius`:
 
 | Radius Name | Value | Usage |
 |-------------|-------|-------|
-| `card` | `0` | Tiles, cards, fields, chips — anything that is a flat colour plane |
-| `control` | `0` | Interactive elements: buttons, toggles, chips, fields |
-| `round` | `999` | Circles only: status dots, avatars, progress rings, toggle knobs |
+| `tile` | `0` | Tiles only — the grid stays hard edged |
+| `card` | `14` | Cards, lists, banners, drop zones, stat blocks |
+| `control` | `10` | Interactive elements: buttons, inputs, selects, checkboxes, drawer rows |
+| `pill` | `999` | Inline pills and markers: list badges, drawer markers, sheet grabber |
+| `round` | `999` | Circles: status dots, avatars, toggle knobs, swatch dots |
 
-**Never use any other radius value.** All corners should be square (0) unless the element is explicitly a circle.
+**Never hardcode a radius.** A value that is not in this table is a bug: either it is a `card`, a `control`, or it is a circle. Sheets, dialogs and the drawer are `Radius.card` plus a few points — they are the one place a larger corner is right, because they are panels lifted above the page.
+
+## Elevation
+
+There are exactly two shadows, in `Shadow`:
+
+| Token | Usage |
+|-------|-------|
+| `Shadow.bar` | The top bar, which content scrolls under |
+| `Shadow.overlay` | Sheets, panels, dialogs and the nav drawer |
+
+A card on a page does **not** get a shadow. It is a colour difference and, where it needs one, a hairline. If everything floats, nothing does.
 
 ## Tile Corners
 
 - **All tiles are square-cornered** — no rounding on titles, subtitles, or the tile background itself
-- Tiles are flat colour fields with square edges (borderRadius: 0)
-- The `tile` style in `src/components/metro/index.tsx` has `borderRadius: Radius.card` which resolves to `0`
+- Tiles are flat colour fields with square edges (`Radius.tile`, which is `0`)
+- The `tile` style in `src/components/metro/tile.tsx` uses `borderRadius: Radius.tile`. Do not point it at `Radius.card` — that token is no longer square
 - Tile text fits within the square; long text wraps and shrinks as needed (see `fitTileText` function)
+- The tiles are the contrast that makes the rest of the app read as modern: if a tile ever acquires a radius, the whole idea collapses into "everything is a rounded card"
 
 ## Mobile View (Windows Phone style)
 
@@ -56,9 +73,37 @@ Width follows the job the page does, not the size of the window:
 
 Set it with `width="wide"` on `MetroScreen` and leave everything else at the default. A dashboard centred in a narrow column on a desktop wastes the screen; an account form stretched across one is unreadable.
 
+## Boards
+
+A dashboard must not scroll the page on a wide screen. The row at the bottom is usually the one somebody is watching, and a page that scrolls keeps it off screen. Build it as a board instead:
+
+```tsx
+<MetroScreen scroll={false} padding="compact" contentStyle={{ flex: 1 }} width="wide">
+  <MetroBoard>
+    <MetroPane grow={1.6}>{mainList}</MetroPane>
+    <MetroPane grow={1}>{sidePanel}</MetroPane>
+  </MetroBoard>
+</MetroScreen>
+```
+
+- `MetroBoard` is a fixed-height row; `MetroPane` is a column that scrolls inside itself.
+- `grow` is a flex weight — give the working area more width than the reference panels.
+- Pick a breakpoint (900 is the house default) and fall back to an ordinary stacked, scrolling page below it. A phone has no second column to spend, so stacking there is correct rather than lazy.
+- Keep the page heading short on a board: `eyebrow` and `title`, and put the explanation in the panes' hints. Every line of chrome is a row of data lost.
+
 ## Navigation
 
 The app has no tab row. A menu button in the top bar opens one drawer, mounted at the shell, so the nav is reachable from every signed-in screen. Sections come from `src/constants/sections.ts`.
+
+The top bar is **compact by rule**:
+
+- a 3-point accent rule, then one row no taller than `Metrics.topBar` (44)
+- a 34-point menu button, the person's name at 15/600, roles at 11 in the dim colour
+- a 30-point avatar on the right
+- two lines of identity, never three: the app's name lives in the drawer and on the home screen's eyebrow, not in the bar
+- a hairline and `Shadow.bar` underneath, because content scrolls beneath it
+
+Chrome is not a page. It gets the smallest footprint that still tells you who you are and where the menu is.
 
 ## Text Fitting Rules
 
@@ -124,7 +169,7 @@ The admin sections share one page shape, so moving between them feels like the s
 
 - A list page opens with its figures band — what the set is, before the rows — then one toolbar strip: the count, the search, and the actions pushed to the right. That strip is `AdminToolbar` in `src/components/admin/admin-toolbar.tsx`; do not hand-roll another order.
 - Panels are for one record and are built from `MetroSection` (a heading, a hint, a hairline), with an eyebrow-only `MetroHeading` where the block is a short fact list rather than a form.
-- An action inside a row uses `MetroButton size="compact"`. A full 52-point button in a list row makes every row look like a form; the row must stay a row.
+- An action inside a row uses `MetroButton size="compact"`. A full 48-point button in a list row makes every row look like a form; the row must stay a row.
 - A value that is the point of the row — a balance, a total — uses `MetroListRow emphasis`, so it reads in the text colour with tabular digits instead of as a quiet caption.
 
 ## Statements And Data Sheets
@@ -140,8 +185,10 @@ Any table of figures is set like a statement, not a grid of boxes:
 ## Implementation Notes
 
 - All corner radii go through the `Radius` constant from `src/constants/metro`
-- `Radius.card = 0` and `Radius.control = 0` — use these for tiles and interactive elements
-- `Radius.round = 999` — only for circular elements
+- `Radius.tile = 0` — tiles only, and the only square corner left in the app
+- `Radius.card = 14` and `Radius.control = 10` — planes and interactive elements
+- `Radius.pill = 999` and `Radius.round = 999` — pills, markers and circles
+- Shadows come from `Shadow`, never from a hand-written `boxShadow`
 - The `Tile` component automatically applies the correct radius via `styles.tile.borderRadius: Radius.card`
 - When custom styling, always reference `Radius.card` or `Radius.control`, never hardcode `0`
 
@@ -151,7 +198,7 @@ Any table of figures is set like a statement, not a grid of boxes:
 // In styles or Tile component
 const styles = StyleSheet.create({
   tile: {
-    borderRadius: Radius.card, // 0 = square corners
+    borderRadius: Radius.tile, // 0 = square corners, tiles only
     overflow: 'hidden',
   },
 });
@@ -173,10 +220,12 @@ const styles = StyleSheet.create({
 
 When adding a new screen with Metro tiles:
 
-- [ ] All tiles use `borderRadius: Radius.card` (or `Radius.control` for interactive elements)
-- [ ] No element uses a non-zero radius unless it's a circle (`Radius.round`)
+- [ ] Tiles use `borderRadius: Radius.tile` — square, always
+- [ ] Cards, lists, banners, inputs and buttons use `Radius.card` / `Radius.control` from the table
+- [ ] Nothing hardcodes a radius number
 - [ ] Tile text fits within the tile using `fitTileText` or acceptable wrapping
 - [ ] Tile titles and subtitles use `ThemedText` with `metroSubheader`/`metroSubtle` types
 - [ ] Tile content respects the square size from the field it's in
-- [ ] No shadows, gradients, or raised effects on tiles
+- [ ] Only the top bar and floating panels carry a shadow (`Shadow.bar` / `Shadow.overlay`)
+- [ ] No gradients anywhere, on tiles or otherwise
 - [ ] One accent colour is used consistently
