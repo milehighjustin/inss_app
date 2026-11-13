@@ -16,6 +16,7 @@ import { useMetro } from '@/components/metro';
 import { AppName } from '@/constants/app';
 import { MetroType, Metrics, Radius, Shadow, Spacing } from '@/constants/metro';
 import { visibleSections, type AppSection } from '@/constants/sections';
+import { roleLabel } from '@/lib/auth/roles';
 import { useAuth } from '@/lib/auth/session';
 
 /**
@@ -125,7 +126,7 @@ function TopBar({ menuOpen, onOpenMenu }: { menuOpen: boolean; onOpenMenu: () =>
           </Text>
           {user?.roles?.length ? (
             <Text numberOfLines={1} style={[styles.roles, { color: theme.textDim }]}>
-              {user.roles.map((role) => role.charAt(0).toUpperCase() + role.slice(1)).join(' · ')}
+              {user.roles.map(roleLabel).join(' · ')}
             </Text>
           ) : null}
         </View>

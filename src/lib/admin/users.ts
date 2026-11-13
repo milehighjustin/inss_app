@@ -49,16 +49,16 @@ export const ASSIGNABLE_ROLES = [
   'administrator',
   'developer',
   'manager',
-  // The support group: the role that puts the Support tile on someone's home
-  // screen and lets them open a session.
+  // The three job groups: each role is what puts that panel's tile on someone's
+  // home screen and lets them open it. They grant nothing else.
+  'kiosk',
+  'kpi',
   'support',
   'supervisor',
   'investor',
 ] as const;
 
-export function roleLabel(role: string): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
-}
+export { roleLabel } from '@/lib/auth/roles';
 
 export function displayName(user: Pick<AdminUser, 'firstName' | 'lastName'>): string {
   return [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Unnamed user';
@@ -142,6 +142,8 @@ export type UserFilter =
   | 'supervisor'
   | 'manager'
   | 'support'
+  | 'kpi'
+  | 'kiosk'
   | 'investor'
   | 'inactive';
 export type UserSort = 'lastNameAZ' | 'lastNameZA';
@@ -152,6 +154,8 @@ export const FILTER_OPTIONS: { value: UserFilter; label: string }[] = [
   { value: 'supervisor', label: 'Supervisors' },
   { value: 'manager', label: 'Managers' },
   { value: 'support', label: 'Support team' },
+  { value: 'kpi', label: 'KPI team' },
+  { value: 'kiosk', label: 'Kiosk operators' },
   { value: 'investor', label: 'Investors' },
   { value: 'inactive', label: 'Inactive' },
 ];

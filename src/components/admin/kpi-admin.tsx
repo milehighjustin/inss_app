@@ -57,9 +57,7 @@ export function KpiAdmin() {
       width="wide">
       <AdminPivot />
       <MetroPivot tabs={TABS} value={tab} onChange={setTab} />
-      <MetroListArea>
-        {tab === 'locations' ? <KpiLocationSettings /> : <SavedLists />}
-      </MetroListArea>
+      {tab === 'locations' ? <KpiLocationSettings /> : <SavedLists />}
     </MetroBoardPage>
   );
 }
@@ -121,7 +119,7 @@ function KpiLocationSettings() {
   ];
 
   return (
-    <View style={styles.body}>
+    <>
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
 
       <AdminToolbar
@@ -142,6 +140,7 @@ function KpiLocationSettings() {
 
       {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading locations" />
       ) : error ? (
@@ -182,7 +181,8 @@ function KpiLocationSettings() {
           }}
         />
       ) : null}
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 
@@ -326,7 +326,7 @@ function SavedLists() {
     [...rows].sort((left, right) => left.name.localeCompare(right.name, 'en', { numeric: true }));
 
   return (
-    <View style={styles.body}>
+    <>
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
 
@@ -350,6 +350,7 @@ function SavedLists() {
         />
       )}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading saved lists" />
       ) : lists.length === 0 ? (
@@ -406,7 +407,8 @@ function SavedLists() {
           { label: 'Keep', variant: 'ghost', onPress: () => setRemoving(null) },
         ]}
       />
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 

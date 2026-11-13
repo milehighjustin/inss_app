@@ -10,6 +10,7 @@ import {
   MetroFigures,
   MetroList,
   MetroListRow,
+  MetroListArea,
   MetroLoading,
   type MetroFigure,
 } from '@/components/metro';
@@ -77,7 +78,7 @@ export function InvestorLocations() {
   ];
 
   return (
-    <View style={styles.body}>
+    <>
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
 
       <AdminToolbar
@@ -98,6 +99,7 @@ export function InvestorLocations() {
 
       {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading locations" />
       ) : error ? (
@@ -136,7 +138,8 @@ export function InvestorLocations() {
           }}
         />
       ) : null}
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { MetroBoardPage, MetroEmpty, MetroListArea, MetroPivot } from '@/components/metro';
+import { MetroBoardPage, MetroEmpty, MetroPivot } from '@/components/metro';
 import { AdminPivot } from './admin-pivot';
 import { DocumentsAdmin } from './documents-screen';
 import { EquityAdmin } from './equity-screen';
@@ -29,18 +29,16 @@ export function InvestorsAdminPage() {
       <AdminPivot />
       <MetroPivot tabs={TABS} value={tab} onChange={setTab} />
 
-      <MetroListArea>
-        {tab === 'investors' ? <InvestorsAdmin /> : null}
-        {tab === 'locations' ? <InvestorLocations /> : null}
-        {tab === 'documents' ? <DocumentsAdmin /> : null}
-        {tab === 'equity' ? <EquityAdmin /> : null}
-        {tab === 'dividends' ? (
-          <MetroEmpty
-            title="Dividends"
-            message="v1's Dividends tab was never built either — it printed the word and nothing else. This is where distributions will land once there is a source for them."
-          />
-        ) : null}
-      </MetroListArea>
+      {tab === 'investors' ? <InvestorsAdmin /> : null}
+      {tab === 'locations' ? <InvestorLocations /> : null}
+      {tab === 'documents' ? <DocumentsAdmin /> : null}
+      {tab === 'equity' ? <EquityAdmin /> : null}
+      {tab === 'dividends' ? (
+        <MetroEmpty
+          title="Dividends"
+          message="v1's Dividends tab was never built either — it printed the word and nothing else. This is where distributions will land once there is a source for them."
+        />
+      ) : null}
     </MetroBoardPage>
   );
 }

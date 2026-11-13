@@ -113,7 +113,6 @@ export function QrAdmin() {
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
 
-      <MetroListArea>
       <AdminToolbar
         count={`${visible.length} of ${codes.length}`}
         actions={
@@ -148,6 +147,7 @@ export function QrAdmin() {
         onChange={setShowInactive}
       />
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading QR codes" />
       ) : visible.length === 0 ? (

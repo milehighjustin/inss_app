@@ -13,6 +13,7 @@ import {
   MetroFigures,
   MetroList,
   MetroListRow,
+  MetroListArea,
   MetroLoading,
   MetroPanel,
   MetroRadioGroup,
@@ -162,7 +163,7 @@ export function DocumentsAdmin() {
   };
 
   return (
-    <View style={styles.body}>
+    <>
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
 
@@ -189,6 +190,7 @@ export function DocumentsAdmin() {
 
       {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading documents" />
       ) : visible.length === 0 ? (
@@ -266,7 +268,8 @@ export function DocumentsAdmin() {
           { label: 'Keep', variant: 'ghost', onPress: () => setRemoving(null) },
         ]}
       />
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 

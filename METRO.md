@@ -40,6 +40,12 @@ There are exactly two shadows, in `Shadow`:
 
 A card on a page does **not** get a shadow. It is a colour difference and, where it needs one, a hairline. If everything floats, nothing does.
 
+## Tiles
+
+- A tile carries one line mark at its top — `TileIcon` in `src/components/metro/tile-icon.tsx`: 1.6-point strokes on a 24-point grid, square caps, one colour (the dim text colour). No filled glyphs, no second hue.
+- The label and subtitle sit on the **bottom edge** of the tile and the mark floats above them. A row of tiles then reads on one baseline instead of as blocks of text starting at different heights.
+- Icons are named for the section (`portfolio`, `kpi`, `kiosk`, `support`, `files`, `account`), not for the object drawn, so one icon is never borrowed for a second meaning.
+
 ## Tile Corners
 
 - **All tiles are square-cornered** — no rounding on titles, subtitles, or the tile background itself
@@ -99,6 +105,8 @@ A page must not scroll on a wide screen. The row at the bottom is usually the on
 - `grow` is a flex weight — give the working area more width than the reference panels.
 - Everything above `MetroListArea` stays put: heading, pivot, figures, search and filters. A control that scrolls away is a control nobody finds twice.
 - Every admin section follows this shape. If a screen can push the page taller than the window at 900px and up, it is not finished.
+- The scroll boundary is the *list*, not the tab body: toolbar, figures and pivot are siblings of the pane, so a search or a filter never scrolls out of reach. A tab that renders in more than one piece puts its own `MetroListArea` inside itself, and the section page never wraps a tab in one.
+- **Integrations is a list, one page per connection.** QuickBooks and PDK have nothing to say to each other; stacking them on one screen makes the section read as one integration with a stranger attached. Adding a third means an index entry and a page.
 - Keep the page heading short on a board: `eyebrow` and `title`, and put the explanation in the panes' hints. Every line of chrome is a row of data lost.
 
 ## Navigation

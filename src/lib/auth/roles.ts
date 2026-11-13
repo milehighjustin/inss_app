@@ -16,12 +16,17 @@ export type AccessModel =
   | 'investor';
 
 /**
- * The KPI board's audience: administrators, managers and supervisors.
+ * The KPI board's audience.
+ *
+ * `kpi` is the group an administrator adds someone to: it is what puts the KPI
+ * tile on their home screen and lets them read the board. The other three keep
+ * their way in because they could read it before the role existed — the same
+ * shape Support has.
  *
  * It is not one of v1's models — `supervisor` also admits managers, but
  * `investor` would be dragged in by none of them and is excluded here.
  */
-export const KPI_ROLES = ['administrator', 'manager', 'supervisor'] as const;
+export const KPI_ROLES = ['kpi', 'administrator', 'manager', 'supervisor'] as const;
 
 /**
  * The Support panel's audience.
@@ -36,11 +41,16 @@ export const SUPPORT_ROLES = ['support', 'administrator', 'manager', 'supervisor
 export const SESSION_STAFF_ROLES = ['administrator', 'manager', 'supervisor'] as const;
 
 /**
- * Kiosk Connect's audience — the console and the admin that maintains the
- * devices. v1's nav lists it for administrators, developers, managers and
- * supervisors, the same set the API accepts on the token route.
+ * Kiosk Connect's audience — the operators who answer calls, and the roles that
+ * maintain the devices.
+ *
+ * `kiosk` is the group an administrator adds an operator to; it puts the tile on
+ * their home screen and lets them open the console. The rest are v1's nav set,
+ * which the API accepts on the token route. A kiosk itself is not in this list:
+ * a screen sitting in a lobby opens a device link and never signs in.
  */
 export const CONNECT_ROLES = [
+  'kiosk',
   'administrator',
   'developer',
   'manager',
@@ -54,6 +64,22 @@ const MODEL_ROLES: Record<Exclude<AccessModel, 'all'>, string[]> = {
   supervisor: ['administrator', 'developer', 'manager', 'supervisor'],
   investor: ['administrator', 'developer', 'investor'],
 };
+
+/**
+ * How a role is written for people.
+ *
+ * A capitalised slug is right for most of them; `kpi` is an acronym and would
+ * read as a typo, so the few that need it are named here rather than in each
+ * screen that prints a list of roles.
+ */
+const ROLE_LABELS: Record<string, string> = {
+  kpi: 'KPI',
+  kiosk: 'Kiosk',
+};
+
+export function roleLabel(role: string): string {
+  return ROLE_LABELS[role] ?? role.charAt(0).toUpperCase() + role.slice(1);
+}
 
 export function hasRole(roles: string[] | null | undefined, role: string): boolean {
   return Boolean(roles?.includes(role));

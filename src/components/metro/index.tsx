@@ -9,6 +9,7 @@
 export { useMetro } from './use-metro';
 
 export { Tile, fitTileText, type TileProps } from './tile';
+export { TileIcon, type TileIconName, type TileIconProps } from './tile-icon';
 export { MetroStat, MetroStatRow, type MetroStatProps } from './stat';
 export { MetroButton, type MetroButtonProps } from './button';
 export { MetroRule, MetroLabel, MetroHeading, type MetroHeadingProps } from './primitives';

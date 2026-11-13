@@ -1,5 +1,14 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  AppState,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import {
   MetroBanner,
@@ -22,7 +31,6 @@ import {
   requestQuickBooksConnect,
   type IntegrationStatus,
 } from '@/lib/admin/integrations';
-import { AdminPivot } from './admin-pivot';
 
 function whenLabel(value: string | null): string {
   if (!value) return '—';
@@ -40,15 +48,15 @@ function messageOf(cause: unknown, fallback: string): string {
 }
 
 /**
- * Admin → Integrations.
+ * Admin → Integrations → QuickBooks.
  *
- * v1's Integrations panel, which is one row that opens "Login with QuickBooks".
- * The connection is a browser errand here too — the app asks the API for Intuit's
- * authorize URL and opens it — so this screen says what is connected, whether it
- * still works, and offers to connect or renew it. It re-reads when the browser
- * window comes back, because the callback lands in that other tab.
+ * One integration, on its own page. Connecting is a browser errand: the app asks
+ * the API for Intuit's authorize URL and opens it, so this screen says what is
+ * connected, whether it still works, and offers to connect or renew. It re-reads
+ * when the browser window comes back, because the callback lands in that other
+ * tab.
  */
-export function IntegrationsAdmin() {
+export function QuickBooksAdmin() {
   const theme = useMetro();
   const { width } = useWindowDimensions();
   const sideBySide = width >= 720;
@@ -186,8 +194,8 @@ export function IntegrationsAdmin() {
 
   return (
     <MetroBoardPage
-      eyebrow="Admin"
-      title="Integrations"
+      eyebrow="Admin · Integrations"
+      title="QuickBooks"
       subtitle={
         loading
           ? 'Checking the QuickBooks connection…'
@@ -203,6 +211,11 @@ export function IntegrationsAdmin() {
       action={
         <View style={styles.actions}>
           <MetroButton
+            label="‹ Integrations"
+            variant="ghost"
+            onPress={() => router.navigate('/admin/integrations')}
+          />
+          <MetroButton
             label="Check"
             variant="ghost"
             onPress={() => void load('refresh')}
@@ -215,8 +228,6 @@ export function IntegrationsAdmin() {
           />
         </View>
       }>
-      <AdminPivot />
-
       {notice ? (
         <MetroBanner
           message={notice.message}
@@ -226,74 +237,71 @@ export function IntegrationsAdmin() {
       ) : null}
 
       {status?.needsAttention && !loading ? (
-        <MetroBanner
-          message={status.needsAttention}
-          tone={connected ? 'error' : 'info'}
-        />
+        <MetroBanner message={status.needsAttention} tone={connected ? 'error' : 'info'} />
       ) : null}
 
       <MetroListArea>
-      {loading ? (
-        <MetroLoading label="Checking QuickBooks" />
-      ) : error ? (
-        <MetroError message={error} onRetry={() => void load('retry')} />
-      ) : !status ? null : (
-        <>
-          <MetroFigures figures={figures} size="medium" />
+        {loading ? (
+          <MetroLoading label="Checking QuickBooks" />
+        ) : error ? (
+          <MetroError message={error} onRetry={() => void load('retry')} />
+        ) : !status ? null : (
+          <>
+            <MetroFigures figures={figures} size="medium" />
 
-          <View style={[styles.columns, { flexDirection: sideBySide ? 'row' : 'column' }]}>
-            <View style={styles.column}>
-              <MetroList title="Integration">
-                <MetroListRow
-                  title="QuickBooks Online"
-                  subtitle={connected ? 'Accounting · company file' : 'Accounting · not linked yet'}
-                  badge={{
-                    label: connected ? 'Connected' : 'Not connected',
-                    tone: connected ? 'accent' : 'neutral',
-                  }}
-                />
-              </MetroList>
+            <View style={[styles.columns, { flexDirection: sideBySide ? 'row' : 'column' }]}>
+              <View style={styles.column}>
+                <MetroList title="Integration">
+                  <MetroListRow
+                    title="QuickBooks Online"
+                    subtitle={connected ? 'Accounting · company file' : 'Accounting · not linked yet'}
+                    badge={{
+                      label: connected ? 'Connected' : 'Not connected',
+                      tone: connected ? 'accent' : 'neutral',
+                    }}
+                  />
+                </MetroList>
 
-              {connected ? null : (
-                <MetroEmpty
-                  title="No QuickBooks company is linked"
-                  message="Connect it so portfolio reports and facility metrics can read straight from the books."
-                />
-              )}
+                {connected ? null : (
+                  <MetroEmpty
+                    title="No QuickBooks company is linked"
+                    message="Connect it so portfolio reports and facility metrics can read straight from the books."
+                  />
+                )}
 
-              <Text style={[styles.note, { color: theme.textDim }]}>
-                {connected
-                  ? 'Status is read from QuickBooks every time this screen loads, so a connection shown here is one that still works.'
-                  : 'Connecting opens QuickBooks in a browser tab. Sign in there, approve access, then come back — nothing is stored until QuickBooks answers.'}
-              </Text>
+                <Text style={[styles.note, { color: theme.textDim }]}>
+                  {connected
+                    ? 'Status is read from QuickBooks every time this screen loads, so a connection shown here is one that still works.'
+                    : 'Connecting opens QuickBooks in a browser tab. Sign in there, approve access, then come back — nothing is stored until QuickBooks answers.'}
+                </Text>
+              </View>
+
+              <View style={styles.column}>
+                <MetroList title="Connection">
+                  <MetroListRow title="Company" value={status.companyName ?? '—'} />
+                  <MetroListRow title="Company ID" value={status.realmId ?? '—'} />
+                  <MetroListRow
+                    title="Access token"
+                    subtitle="Refreshes on its own while the connection is alive"
+                    value={whenLabel(status.accessTokenExpiresAt)}
+                  />
+                  <MetroListRow
+                    title="Refresh token"
+                    subtitle={
+                      refreshDaysLeft === null
+                        ? 'No refresh window recorded'
+                        : refreshDaysLeft > 0
+                          ? `${refreshDaysLeft} day${refreshDaysLeft === 1 ? '' : 's'} left before reconnecting`
+                          : 'Expired — reconnect to renew'
+                    }
+                    value={whenLabel(status.refreshTokenExpiresAt)}
+                  />
+                  <MetroListRow title="Connected" value={whenLabel(status.connectedAt)} />
+                </MetroList>
+              </View>
             </View>
-
-            <View style={styles.column}>
-              <MetroList title="Connection">
-                <MetroListRow title="Company" value={status.companyName ?? '—'} />
-                <MetroListRow title="Company ID" value={status.realmId ?? '—'} />
-                <MetroListRow
-                  title="Access token"
-                  subtitle="Refreshes on its own while the connection is alive"
-                  value={whenLabel(status.accessTokenExpiresAt)}
-                />
-                <MetroListRow
-                  title="Refresh token"
-                  subtitle={
-                    refreshDaysLeft === null
-                      ? 'No refresh window recorded'
-                      : refreshDaysLeft > 0
-                        ? `${refreshDaysLeft} day${refreshDaysLeft === 1 ? '' : 's'} left before reconnecting`
-                        : 'Expired — reconnect to renew'
-                  }
-                  value={whenLabel(status.refreshTokenExpiresAt)}
-                />
-                <MetroListRow title="Connected" value={whenLabel(status.connectedAt)} />
-              </MetroList>
-            </View>
-          </View>
-        </>
-      )}
+          </>
+        )}
       </MetroListArea>
     </MetroBoardPage>
   );

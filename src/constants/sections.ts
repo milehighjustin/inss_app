@@ -39,9 +39,12 @@ export interface AppSection {
  */
 export const SECTIONS: AppSection[] = [
   { name: 'home', href: '/', label: 'Home' },
+  // Both job-group sections are gated the way Support is: the role an
+  // administrator assigns, plus the roles that could reach the section before
+  // that role existed.
   { name: 'kpi', href: '/kpi', label: 'KPI', requiresRoles: KPI_ROLES },
-  // v1 shows Kiosk Connect to the same people as KPI: administrators,
-  // developers, managers and supervisors.
+  // Kiosk Connect: the `kiosk` operator group, plus v1's administrator,
+  // developer, manager and supervisor set.
   {
     name: 'kiosk-connect',
     href: '/kioskconnect',

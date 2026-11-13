@@ -18,11 +18,11 @@ import {
 } from '@/components/metro';
 import { MetroType, Spacing } from '@/constants/metro';
 import { listNotificationTags, type NotificationTag } from '@/lib/admin/notifications';
+import { roleLabel } from '@/lib/auth/roles';
 import {
   ASSIGNABLE_ROLES,
   displayName,
   fetchUser,
-  roleLabel,
   updateUser,
   uploadUserPhoto,
   type AdminUser,

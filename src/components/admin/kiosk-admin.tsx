@@ -77,9 +77,7 @@ export function KioskAdmin() {
       width="wide">
       <AdminPivot />
       <MetroPivot tabs={TABS} value={tab} onChange={setTab} />
-      <MetroListArea>
-        {tab === 'devices' ? <DevicesAdmin /> : <MediaAdmin />}
-      </MetroListArea>
+      {tab === 'devices' ? <DevicesAdmin /> : <MediaAdmin />}
     </MetroBoardPage>
   );
 }
@@ -124,7 +122,7 @@ function DevicesAdmin() {
   ];
 
   return (
-    <View style={styles.body}>
+    <>
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
 
@@ -151,6 +149,7 @@ function DevicesAdmin() {
 
       {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading devices" />
       ) : visible.length === 0 ? (
@@ -201,7 +200,8 @@ function DevicesAdmin() {
           }}
         />
       ) : null}
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 
@@ -744,7 +744,7 @@ function MediaAdmin() {
   ];
 
   return (
-    <View style={styles.body}>
+    <>
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
 
@@ -804,6 +804,7 @@ function MediaAdmin() {
         </MetroSection>
       ) : null}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading media" />
       ) : visible.length === 0 ? (
@@ -862,7 +863,8 @@ function MediaAdmin() {
           { label: 'Keep', variant: 'ghost', onPress: () => setConfirming(null) },
         ]}
       />
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 

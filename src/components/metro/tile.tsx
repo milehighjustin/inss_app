@@ -37,6 +37,11 @@ export function fitTileText(
 export interface TileProps {
   title: string;
   subtitle?: string;
+  /**
+   * The mark at the top of the tile, usually a `TileIcon`. On an accent tile the
+   * caller passes the icon in `onAccent`, because only the tile knows its fill.
+   */
+  icon?: ReactNode;
   /** Square tiles are the default; `wide` is exactly two squares plus a gutter. */
   shape?: 'square' | 'wide';
   /** Square size, from `tileField(...).size`. */
@@ -50,6 +55,7 @@ export interface TileProps {
 export function Tile({
   title,
   subtitle,
+  icon,
   shape = 'square',
   size = Metrics.tileMax,
   onPress,
@@ -74,6 +80,7 @@ export function Tile({
         },
         style,
       ]}>
+      {icon ? <View style={styles.icon}>{icon}</View> : null}
       <ThemedText
         type="metroSubheader"
         numberOfLines={3}
@@ -113,9 +120,16 @@ const styles = StyleSheet.create({
   tile: {
     // Tiles are the one hard-edged thing left: Radius.tile is 0 on purpose.
     borderRadius: Radius.tile,
-    justifyContent: 'flex-start',
+    // Content sits on the tile's bottom edge — the label is the anchor and the
+    // mark floats above it — so a row of tiles reads as one baseline rather
+    // than as blocks of text starting at different heights.
+    justifyContent: 'flex-end',
     gap: 6,
     overflow: 'hidden',
+  },
+  icon: {
+    // The mark is pinned to the top of whatever space the labels leave.
+    marginBottom: 'auto',
   },
   pressed: {
     opacity: 0.75,

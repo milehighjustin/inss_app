@@ -13,8 +13,9 @@ import {
   MetroHeading,
   MetroList,
   MetroListRow,
-  MetroLoading,
   MetroLabel,
+  MetroListArea,
+  MetroLoading,
   MetroPanel,
   type MetroFigure,
 } from '@/components/metro';
@@ -78,7 +79,7 @@ export function InvestorsAdmin() {
   const accountName = (id: string) => accounts.find((account) => account.id === id)?.name ?? id;
 
   return (
-    <View style={styles.body}>
+    <>
       {notice ? <MetroBanner tone="success" message={notice} onDismiss={() => setNotice(null)} /> : null}
 
       <AdminToolbar
@@ -97,6 +98,7 @@ export function InvestorsAdmin() {
         </View>
       </AdminToolbar>
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading investors" />
       ) : error ? (
@@ -145,7 +147,8 @@ export function InvestorsAdmin() {
           }}
         />
       ) : null}
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 

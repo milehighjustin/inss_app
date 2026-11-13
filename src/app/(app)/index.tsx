@@ -2,10 +2,10 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { MetroBanner, MetroButton, MetroScreen, Tile } from '@/components/metro';
+import { MetroBanner, MetroButton, MetroScreen, Tile, TileIcon } from '@/components/metro';
 import { AppName } from '@/constants/app';
 import { Metrics, tileField } from '@/constants/metro';
-import { KPI_ROLES, SUPPORT_ROLES, hasAnyRole } from '@/lib/auth/roles';
+import { CONNECT_ROLES, KPI_ROLES, SUPPORT_ROLES, hasAnyRole } from '@/lib/auth/roles';
 import { useAuth } from '@/lib/auth/session';
 import { desktopPushStatus, desktopPushSupported } from '@/lib/push/browser';
 import { phonePushStatus, phonePushSupported } from '@/lib/push/phone';
@@ -31,6 +31,7 @@ export default function HomeScreen() {
 
   const roles = user?.roles;
   const showKpi = hasAnyRole(roles, KPI_ROLES);
+  const showKiosk = hasAnyRole(roles, CONNECT_ROLES);
   const showSupport = hasAnyRole(roles, SUPPORT_ROLES);
   const showInvestor = roles?.includes('investor') ?? false;
 
@@ -43,6 +44,7 @@ export default function HomeScreen() {
           <Tile
             title="Portfolio"
             subtitle="Equity and reports"
+            icon={<TileIcon name="portfolio" size={30} />}
             size={field.size}
             onPress={() => router.push('/investor')}
           />
@@ -51,14 +53,25 @@ export default function HomeScreen() {
           <Tile
             title="KPI"
             subtitle="Facility performance"
+            icon={<TileIcon name="kpi" size={30} />}
             size={field.size}
             onPress={() => router.push('/kpi')}
+          />
+        ) : null}
+        {showKiosk ? (
+          <Tile
+            title="Kiosk Connect"
+            subtitle="Operator console"
+            icon={<TileIcon name="kiosk" size={30} />}
+            size={field.size}
+            onPress={() => router.push('/kioskconnect')}
           />
         ) : null}
         {showSupport ? (
           <Tile
             title="Support"
             subtitle="Your session"
+            icon={<TileIcon name="support" size={30} />}
             size={field.size}
             onPress={() => router.push('/support')}
           />
@@ -67,6 +80,7 @@ export default function HomeScreen() {
           <Tile
             title="Files"
             subtitle="Your documents"
+            icon={<TileIcon name="files" size={30} />}
             size={field.size}
             onPress={() => router.push('/investor/files')}
           />
@@ -74,6 +88,7 @@ export default function HomeScreen() {
         <Tile
           title="Account"
           subtitle="Your profile"
+          icon={<TileIcon name="account" size={30} />}
           size={field.size}
           onPress={() => router.push('/account')}
         />

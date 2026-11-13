@@ -10,6 +10,7 @@ import {
   MetroFigures,
   MetroList,
   MetroListRow,
+  MetroListArea,
   MetroLoading,
   type MetroFigure,
 } from '@/components/metro';
@@ -76,7 +77,7 @@ export function EquityAdmin() {
   ];
 
   return (
-    <View style={styles.body}>
+    <>
       {error ? <MetroBanner message={error} onDismiss={() => setError(null)} /> : null}
 
       <AdminToolbar
@@ -97,6 +98,7 @@ export function EquityAdmin() {
 
       {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
+      <MetroListArea>
       {loading ? (
         <MetroLoading label="Loading equity" />
       ) : visible.length === 0 ? (
@@ -121,7 +123,8 @@ export function EquityAdmin() {
           ))}
         </MetroList>
       )}
-    </View>
+      </MetroListArea>
+    </>
   );
 }
 
