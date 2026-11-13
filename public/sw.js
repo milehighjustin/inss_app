@@ -24,7 +24,7 @@
 const DEFAULT_TITLE = 'INSS';
 
 /** Where the shell and the fallback page are kept. Bump to drop old copies. */
-const SHELL_CACHE = 'inss-shell-v1';
+const SHELL_CACHE = 'inss-shell-v2';
 
 /**
  * The build's own files: the JS bundle, its CSS, fonts.
@@ -51,6 +51,7 @@ const PRECACHE = [
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',
+  '/splash-logo.png',
 ];
 
 /**

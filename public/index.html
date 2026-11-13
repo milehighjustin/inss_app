@@ -35,7 +35,13 @@
     <!-- Browsers still disagree about the icon tag, so all three spellings. -->
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
     <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+    <link rel="icon" href="/favicon-48.png" sizes="48x48" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+
+    <!-- Windows reads its own tile vocabulary for a pinned site and for the
+         MSIX package the Store listing is built from. -->
+    <meta name="msapplication-TileColor" content="#208AEF" />
+    <meta name="msapplication-TileImage" content="/mstile-150x150.png" />
 
     <!-- iOS installs from the share sheet and then reads its own tags: the title
          under the icon, the status bar, and the flag that makes the home-screen
@@ -80,10 +86,38 @@
         }
       }
     </style>
+
+    <!-- The splash a browser can paint before the bundle has even been parsed:
+         same logo, same blue as the native splash and BootScreen, so the app
+         never opens on a white rectangle. `src/app/_layout.tsx` fades it out
+         once React has mounted. -->
+    <style id="boot-splash-style">
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #208aef;
+        transition: opacity 180ms ease;
+      }
+      #boot-splash.is-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #boot-splash img {
+        width: 180px;
+        height: 209px;
+      }
+    </style>
   </head>
 
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="boot-splash" aria-hidden="true">
+      <img src="/splash-logo.png" alt="" width="180" height="209" />
+    </div>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   </body>

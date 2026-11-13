@@ -184,23 +184,22 @@ async function ensureChannels(): Promise<void> {
   }).catch(() => null);
 }
 
-/** Shows alerts that arrive while the app is open, with the right channel. */
-export function installForegroundHandler(): void {
-  Notifications.setNotificationHandler({
-    handleNotification: async (notification) => {
-      const loud =
-        notification.request.content.data?.priority !== 'quiet' &&
-        notification.request.content.sound !== null;
-
-      return {
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: loud,
-        shouldSetBadge: false,
-      };
-    },
-  });
-}
+/*
+ * There is deliberately no `setNotificationHandler` here.
+ *
+ * It used to be installed from an effect, and it re-implemented what the
+ * notification already says about itself: show it, and play the sound it
+ * carries. A quiet alert is sent without a sound, so iOS plays nothing for it
+ * anyway — the handler only decided something the payload had already decided.
+ *
+ * What it cost was a native round trip on every arriving notification, on the
+ * code path where expo-notifications' own iOS delegate calls back into JS and
+ * waits for an answer. That path has crashed the app in release builds; 58.1.3
+ * fixed one such crash (a late answer racing a timeout or a second notification),
+ * and a handler that does not exist cannot race anything. Since SDK 58 a
+ * foreground notification is presented by default, exactly as the handler asked
+ * for, so nothing is lost by leaving the decision to the library.
+ */
 
 function permissionOf(status: Notifications.PermissionStatus): PhonePushPermission {
   if (status === 'granted' || status === 'denied') return status;
@@ -222,73 +221,131 @@ export async function phonePushStatus(): Promise<PhonePushStatus> {
 }
 
 /**
+ * What this process last sent, so the same registration is not sent again.
+ *
+ * `getDevicePushTokenAsync()` asks iOS to register for remote notifications, and
+ * iOS answers by announcing the token again — through `addPushTokenListener`,
+ * whose handler calls back into here. Token → register → token is a loop, and it
+ * is a loop that costs one API request each time round: that is what flooded the
+ * server. The token is remembered, so the re-announcement of a token we already
+ * sent is not news.
+ */
+let lastAttemptToken: string | null = null;
+let lastAttemptAt = 0;
+let lastAttemptOk = false;
+
+/** How long a token is trusted as sent, when a launch or a remount asks again. */
+const RESYNC_AFTER_MS = 60_000;
+
+/** The registration already in flight, so two callers share one request. */
+let syncing: Promise<PhonePushStatus> | null = null;
+
+/**
  * Registers this device, or refreshes its token.
  *
  * Idempotent: the installation id is stable, so a foreground, a token rollover
  * and a tag change all land on the same row. `pending: true` means the hub has
  * not accepted it yet — the reconcile cron retries, so the app tells the truth
  * rather than claiming alerts work.
+ *
+ * Coalesced and deduplicated: concurrent callers await the same request, and the
+ * same token is not sent again within `RESYNC_AFTER_MS`. `force` is for the one
+ * caller that has a reason to re-send anyway — the Enable button, where the tags
+ * may have changed since the last sync.
  */
-export async function syncPhonePush(): Promise<PhonePushStatus> {
+export async function syncPhonePush(options: { force?: boolean } = {}): Promise<PhonePushStatus> {
   if (!phonePushSupported()) return UNSUPPORTED;
+  if (syncing) return syncing;
 
-  const permission = permissionOf((await Notifications.getPermissionsAsync()).status);
-  if (permission !== 'granted') {
-    return { supported: true, permission, registered: false, pending: false };
-  }
+  const run = async (): Promise<PhonePushStatus> => {
+    const permission = permissionOf((await Notifications.getPermissionsAsync()).status);
+    if (permission !== 'granted') {
+      return { supported: true, permission, registered: false, pending: false };
+    }
 
-  const installationId = (await storedInstallationId()) ?? newInstallationId();
-  await storeInstallationId(installationId);
+    const installationId = (await storedInstallationId()) ?? newInstallationId();
+    await storeInstallationId(installationId);
 
-  let token: string;
-  try {
-    const device = await Notifications.getDevicePushTokenAsync();
-    token = String(device.data);
-  } catch (cause) {
-    return {
-      supported: true,
-      permission,
-      registered: Boolean(await storedInstallationId()),
-      pending: false,
-      error:
-        cause instanceof Error
-          ? cause.message
-          : 'This device has no push token yet. Try again in a moment.',
-    };
-  }
+    let token: string;
+    try {
+      const device = await Notifications.getDevicePushTokenAsync();
+      token = String(device.data);
+    } catch (cause) {
+      return {
+        supported: true,
+        permission,
+        registered: Boolean(await storedInstallationId()),
+        pending: false,
+        error:
+          cause instanceof Error
+            ? cause.message
+            : 'This device has no push token yet. Try again in a moment.',
+      };
+    }
 
-  try {
-    const result = await apiFetch<{
-      installation: { installationId: string };
-      synced: boolean;
-      error?: string;
-    }>('/api/mobile/notifications/installations', {
-      method: 'POST',
-      body: {
-        installationId,
-        platform: Platform.OS,
-        pushChannel: token,
-        appVersion: Constants.expoConfig?.version ?? '',
-        deviceLabel: `${Device.modelName ?? 'Device'} · ${Platform.OS === 'ios' ? 'iOS' : 'Android'}`,
-      },
-    });
+    // Recorded before the request, not after it: a registration that fails still
+    // asked iOS for the token, which is what re-announces it. Leaving the record
+    // to the success path would let a failing API produce the same loop as a
+    // working one, only slower.
+    if (
+      !options.force &&
+      token === lastAttemptToken &&
+      Date.now() - lastAttemptAt < RESYNC_AFTER_MS
+    ) {
+      return {
+        supported: true,
+        permission,
+        registered: lastAttemptOk,
+        pending: !lastAttemptOk,
+        error: lastAttemptOk ? undefined : 'The push service has not accepted this device yet.',
+      };
+    }
 
-    return {
-      supported: true,
-      permission,
-      registered: true,
-      pending: !result.synced,
-      error: result.synced ? undefined : result.error,
-    };
-  } catch (cause) {
-    return {
-      supported: true,
-      permission,
-      registered: true,
-      pending: true,
-      error: cause instanceof Error ? cause.message : 'The device could not be registered.',
-    };
-  }
+    lastAttemptToken = token;
+    lastAttemptAt = Date.now();
+    lastAttemptOk = false;
+
+    try {
+      const result = await apiFetch<{
+        installation: { installationId: string };
+        synced: boolean;
+        error?: string;
+      }>('/api/mobile/notifications/installations', {
+        method: 'POST',
+        body: {
+          installationId,
+          platform: Platform.OS,
+          pushChannel: token,
+          appVersion: Constants.expoConfig?.version ?? '',
+          deviceLabel: `${Device.modelName ?? 'Device'} · ${Platform.OS === 'ios' ? 'iOS' : 'Android'}`,
+        },
+      });
+
+      lastAttemptOk = result.synced;
+
+      return {
+        supported: true,
+        permission,
+        registered: true,
+        pending: !result.synced,
+        error: result.synced ? undefined : result.error,
+      };
+    } catch (cause) {
+      return {
+        supported: true,
+        permission,
+        registered: true,
+        pending: true,
+        error: cause instanceof Error ? cause.message : 'The device could not be registered.',
+      };
+    }
+  };
+
+  syncing = run().finally(() => {
+    syncing = null;
+  });
+
+  return syncing;
 }
 
 /**
@@ -317,7 +374,8 @@ export async function enablePhonePush(): Promise<PhonePushStatus> {
   // looks for before it re-registers a rotated token.
   await rememberOptIn(true);
 
-  return syncPhonePush();
+  // Forced: pressing Enable says "this device, with these tags, now".
+  return syncPhonePush({ force: true });
 }
 
 /** Removes this device, here and in the hub. */
@@ -335,6 +393,12 @@ export async function disablePhonePush(): Promise<void> {
 
   await forgetInstallationId();
   await rememberOptIn(false);
+
+  // A device that is switched off has nothing registered; switching it back on
+  // must be able to send again.
+  lastAttemptToken = null;
+  lastAttemptAt = 0;
+  lastAttemptOk = false;
 }
 
 /** One alert to this phone, from the same endpoint the browser uses. */
@@ -363,10 +427,6 @@ export function usePhonePushRegistration(): void {
   useEffect(() => {
     if (status !== 'signedIn' || !userId) return;
 
-    // The handler is what shows an alert while the app is open. It is harmless
-    // without a registration and keeps a switched-on device working.
-    installForegroundHandler();
-
     if (!addressed) {
       // Nothing will ever be addressed to them, so this device should not be
       // holding a registration open.
@@ -382,7 +442,13 @@ export function usePhonePushRegistration(): void {
       await syncPhonePush().catch(() => {});
     })();
 
-    const subscription = Notifications.addPushTokenListener(() => {
+    const subscription = Notifications.addPushTokenListener((device) => {
+      // iOS re-announces the same token every time registration is requested, so
+      // this event is not a change on its own. Registering again because of it
+      // is the loop that flooded the API: only a token we have not sent is news.
+      const token = String(device?.data ?? '');
+      if (!token || token === lastAttemptToken || syncing) return;
+
       // A rotated token only matters for a device that is switched on.
       void (async () => {
         if (await deviceOptedIn()) await syncPhonePush().catch(() => {});

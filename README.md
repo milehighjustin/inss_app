@@ -64,7 +64,8 @@ chrome.
 | Piece | Where |
 | --- | --- |
 | Manifest — name, colours, start URL, icons | `public/manifest.webmanifest` |
-| Icons — 192, 512, maskable 512, apple-touch 180, favicon 16/32 | `public/` |
+| Icons — 72 to 512, maskable 192/512, apple-touch 180, favicon 16/32/48/ICO, Windows tile 150 | `public/` |
+| Store listing art — App Store 1024, Play 512, full Microsoft MSIX set | `assets/store/` |
 | Offline fallback page | `public/offline.html` |
 | Service worker — app shell cache, push, notification clicks | `public/sw.js` |
 | Manifest, theme colour and Apple meta tags | `public/index.html` (the SPA shell template) |
@@ -87,35 +88,53 @@ desktop alerts. Without it a browser will not offer to install the app at all.
   Data still needs a connection; the offline page (or the shell's own empty
   states) says so.
 - **The maskable icon is its own file.** Launchers crop maskable icons to their
-  own shape, so it is the mark on the accent field at ~55% width — inside the
-  safe circle — rather than a copy of `icon.png`, whose mark reaches 90% of the
-  radius and would lose its tips.
+  own shape, so it is the lockup on white at 56% of the tile — inside the safe
+  circle — rather than a copy of `icon.png`, whose lockup reaches 86% and would
+  lose its tips.
 
 ### Icons
 
-`assets/inss.webp` is the artwork. Every icon — the App Store tile, the Android
-adaptive layers, the PWA set, the favicons, the notification masks and the
-splash mark — is derived from it by one script:
+`assets/in-logo-pmsC.eps` is the artwork — the 216×251pt Illustrator original,
+with the unit + "in" mark above a "SELF STORAGE" wordmark. Every icon — the App
+Store tile, the Android adaptive layers, the PWA set, the favicons, the
+notification marks, the splash and the Microsoft Store package — is derived from
+it by one script:
 
 ```bash
 python3 scripts/make-icons.py
 ```
 
-It crops the badge out of the wide white canvas first, then writes each file at
-the fraction of the tile that platform crops safely (adaptive 66%, maskable safe
-circle), and prints what it produced. Three kinds come out of it, and the
-difference is not cosmetic:
+It rasterises the EPS at 1200dpi (3600px wide) with ghostscript, so every size is
+downsampled from the same sharp master rather than upscaled from a thumbnail. It
+needs `pillow` and `ghostscript`:
 
-- **Opaque tiles** — vice recognise, `RGB` with no alpha channel. Apple rejects
-  an app icon that carries one.
+```bash
+python3 -m pip install pillow
+brew install ghostscript        # macOS; Debian/Ubuntu: apt install ghostscript
+```
+
+The EPS is a Mac-binary Illustrator file — a preview header in front of the
+PostScript and a TIFF preview appended after it — and the script trims both
+before rendering. It then splits the artwork into the lockup and the mark alone
+(the wordmark would not survive an adaptive icon's 66% crop), writes each file at
+the fraction of the tile its platform crops safely, and prints what it produced.
+Four kinds come out of it, and the difference is not cosmetic:
+
+- **Opaque tiles** — `RGB` with no alpha channel. Apple rejects an app icon that
+  carries one.
 - **Adaptive foreground and monochrome** — transparent, so the launcher's own
   background and its themed-icon tint show through.
-- **Silhouettes** — one colour on transparent, for the notification icons (Android
-  tints them itself) and the splash mark (white, on the accent field).
+- **Silhouettes** — one colour on transparent, for the notification badge, the
+  Windows lock-screen/badge marks and the white splash.
+- **Store art** — `assets/store/app-store-1024.png` and `play-store-512.png` for the
+  listing forms, and `assets/store/windows/` with the MSIX `Square44…`, `Square71…`,
+  `Square150…`, `Square310…`, `Wide310x150…`, `StoreLogo`, `SplashScreen`,
+  `LockScreenLogo` and `BadgeLogo` assets at scales 100/125/150/200/400, plus the
+  `targetsize-16/24/32/48/256` taskbar variants Partner Center asks for.
 
-The source is 77×81, so a 1024 tile is upscaled about 13× and looks soft at large
-sizes. Replace `assets/inss.webp` with a 1024px or vector original and re-run the
-script — nothing else needs to change.
+Replace the EPS with a new one and re-run the script — nothing else needs to
+change. `assets/inss.webp` is the old 77×81 raster the set used to be upscaled
+from, and is no longer read.
 
 ## Where things live
 

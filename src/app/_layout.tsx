@@ -2,6 +2,7 @@ import '@/global.css';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 import { IncomingAlertsProvider } from '@/lib/alerts/incoming';
 import { BootScreen } from '@/components/boot-screen';
@@ -21,6 +22,18 @@ export default function RootLayout() {
   // visitor with nothing installable.
   useEffect(() => {
     registerWebApp();
+
+    // The web shell paints the logo splash in index.html before any JavaScript
+    // runs. BootScreen takes over as soon as the tree mounts, so the static copy
+    // is faded out and removed rather than left underneath it.
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const splash = document.getElementById('boot-splash');
+    if (!splash) return;
+
+    splash.classList.add('is-done');
+    const timer = setTimeout(() => splash.remove(), 400);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

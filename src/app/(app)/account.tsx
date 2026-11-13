@@ -1,6 +1,7 @@
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBadge,
@@ -40,6 +41,30 @@ import {
 } from '@/lib/push/phone';
 
 /**
+ * The version a support call starts with: the marketing version, and the build
+ * number when the binary carries one.
+ *
+ * `expoConfig.version` is `app.json`'s version, which is what a TestFlight build
+ * and a dev client both report; the build number changes with every EAS build
+ * even when the version does not, so it is shown beside it in brackets. A dev
+ * client built from a checkout may have no native build number, and the version
+ * alone is the honest answer there.
+ */
+function appVersionLabel(): string {
+  const version = Constants.expoConfig?.version ?? '';
+
+  const build =
+    Platform.OS === 'ios'
+      ? (Constants.platform?.ios?.buildNumber ?? Constants.expoConfig?.ios?.buildNumber ?? null)
+      : Platform.OS === 'android'
+        ? (Constants.platform?.android?.versionCode ?? Constants.expoConfig?.android?.versionCode ?? null)
+        : null;
+
+  const suffix = build === null || build === undefined || build === '' ? '' : ` (${build})`;
+  return `${version || 'Unknown'}${suffix}`;
+}
+
+/**
  * Who you are signed in as, the one colour you own, and the way out.
  *
  * The page opens with the person — a portrait, their name and their roles — then
@@ -61,6 +86,7 @@ export default function AccountScreen() {
   const details = [
     { label: 'Username', value: user?.username || '—' },
     { label: 'Email', value: user?.email || '—' },
+    { label: 'App version', value: appVersionLabel() },
   ];
 
   return (

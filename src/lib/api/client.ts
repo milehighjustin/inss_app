@@ -63,30 +63,97 @@ function messageForStatus(status: number): string {
 }
 
 /**
+ * How long a single attempt may hang before it counts as a failure.
+ *
+ * React Native's fetch has no timeout of its own: a request to a server that is
+ * cold-starting, or to a host whose proxy is waiting on an origin that is not
+ * there, hangs until the OS gives up — which is minutes, with no error and no
+ * spinner that ever resolves. Screens fetch several endpoints at once, so one
+ * such host reads as "extremely slow" rather than "down". A generous ceiling
+ * turns that into an answer the app can act on.
+ */
+const TIMEOUT_MS = 25_000;
+
+/** The one retry given to a read, and the pause before it. */
+const RETRY_DELAY_MS = 700;
+
+function timeoutError(): ApiError {
+  return new ApiError(
+    'The server took too long to answer. Check your connection and try again.',
+    0,
+  );
+}
+
+/**
+ * One attempt, bounded by `TIMEOUT_MS` and by the caller's own signal.
+ *
+ * The two are folded into one controller: a timeout and a screen being left must
+ * both cancel the socket, and neither should be mistaken for the other.
+ */
+async function attempt(
+  url: string,
+  init: RequestInit,
+  callerSignal?: AbortSignal,
+): Promise<Response> {
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, TIMEOUT_MS);
+
+  const cancel = () => controller.abort();
+  callerSignal?.addEventListener('abort', cancel);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch {
+    throw timedOut
+      ? timeoutError()
+      : new ApiError('Cannot reach the server. Check your connection and try again.', 0);
+  } finally {
+    clearTimeout(timer);
+    callerSignal?.removeEventListener('abort', cancel);
+  }
+}
+
+/**
  * One request, authenticated, with a failure turned into an `ApiError`.
  *
  * Both JSON and binary callers go through this, so a 401 signs the app out
  * whichever kind of response was expected.
+ *
+ * A read that fails at the network level is tried once more. That is what a
+ * cold backend looks like: the first request wakes it and sometimes loses the
+ * race, and the second — sent while it is now warm — answers immediately. Only
+ * GET is retried: replaying a write is how a double document upload happens.
  */
 async function send(path: string, options: ApiRequestOptions = {}): Promise<Response> {
   const { method = 'GET', body, anonymous = false, token, signal, headers } = options;
 
   const authToken = token ?? (anonymous ? undefined : (await getToken()) ?? undefined);
 
+  const url = `${API_URL}${path}`;
+  const init: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...headers,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  };
+
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
-      method,
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        ...headers,
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    throw new ApiError('Cannot reach the server. Check your connection and try again.', 0);
+    response = await attempt(url, init, signal);
+  } catch (error) {
+    const canRetry = method === 'GET' && !signal?.aborted;
+    if (!canRetry) throw error;
+
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    response = await attempt(url, init, signal);
   }
 
   if (!response.ok) {

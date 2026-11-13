@@ -53,8 +53,6 @@ export async function sendTestPhonePush(): Promise<void> {
   throw new Error('Phone alerts are only available in the iOS and Android app.');
 }
 
-export function installForegroundHandler(): void {}
-
 /** Registration is a native concern; there is nothing to keep in step here. */
 export function usePhonePushRegistration(): void {
   useEffect(() => {}, []);
