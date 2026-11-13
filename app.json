@@ -2,7 +2,7 @@
   "expo": {
     "name": "INSS Internal",
     "slug": "inss-app-v2",
-    "version": "1.0.0",
+    "version": "2026.1112.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "inssappv2",
