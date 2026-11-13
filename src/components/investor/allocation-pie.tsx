@@ -301,29 +301,50 @@ export function AllocationPie({ slices, available, showLabels, onOpenLocation }:
       />
 
       {hovered ? (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.tooltip,
-            {
-              left: tooltipLeft,
-              top: tooltipTop,
-              width: TOOLTIP_WIDTH,
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}>
-          <Text numberOfLines={1} style={[styles.tooltipName, { color: theme.text }]}>
-            {sliceName(hovered.slice.location)}
-          </Text>
-          <Text style={[styles.tooltipValue, { color: theme.text }]}>
-            {investorMoney(hovered.slice.location.equity.investorInvestedTotal)}
-          </Text>
-          <Text style={[styles.tooltipShare, { color: theme.textDim }]}>
-            {investorPct(hovered.slice.location.equity.pctTotalInvestment)}
-          </Text>
-        </View>
+        <AllocationTooltip
+          location={hovered.slice.location}
+          left={tooltipLeft}
+          top={tooltipTop}
+          width={TOOLTIP_WIDTH}
+        />
       ) : null}
+    </View>
+  );
+}
+
+export interface AllocationTooltipProps {
+  location: InvestorLocation;
+  /** Offsets inside the chart or bar this readout belongs to. */
+  left: number;
+  top: number;
+  width: number;
+}
+
+/**
+ * The hover readout beside a slice or a bar segment: the property's name, the
+ * equity in it and its share of the portfolio — the three things v1 answers a
+ * pointer with. It never takes the pointer itself, so the segment underneath
+ * keeps its hover and its click.
+ */
+export function AllocationTooltip({ location, left, top, width }: AllocationTooltipProps) {
+  const theme = useMetro();
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        styles.tooltip,
+        { left, top, width, backgroundColor: theme.surface, borderColor: theme.border },
+      ]}>
+      <Text numberOfLines={1} style={[styles.tooltipName, { color: theme.text }]}>
+        {sliceName(location)}
+      </Text>
+      <Text style={[styles.tooltipValue, { color: theme.text }]}>
+        {investorMoney(location.equity.investorInvestedTotal)}
+      </Text>
+      <Text style={[styles.tooltipShare, { color: theme.textDim }]}>
+        {investorPct(location.equity.pctTotalInvestment)}
+      </Text>
     </View>
   );
 }

@@ -20,13 +20,17 @@ const TABS = [
 export function AdminSupportPivot() {
   const pathname = usePathname();
 
-  // A single session's detail belongs to Sessions, so it keeps the tab it was
-  // opened from.
+  // A single session's detail belongs to Sessions and a person's numbers belong
+  // to Performance, so each keeps the tab it was opened from.
   const current =
     TABS.filter(
       (tab) => tab.value !== '/admin/support' && pathname.startsWith(`${tab.value}`),
     )[0]?.value ??
-    (pathname.startsWith('/admin/support/session') ? '/admin/support/sessions' : '/admin/support');
+    (pathname.startsWith('/admin/support/user')
+      ? '/admin/support/performance'
+      : pathname.startsWith('/admin/support/session')
+        ? '/admin/support/sessions'
+        : '/admin/support');
 
   return (
     <MetroPivot tabs={TABS} value={current} onChange={(value) => router.navigate(value as Href)} />

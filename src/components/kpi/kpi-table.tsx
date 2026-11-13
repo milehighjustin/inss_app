@@ -47,7 +47,7 @@ export function KpiTable({ facilities, onOpen }: KpiTableProps) {
   const { width } = useWindowDimensions();
   const nameWidth = width < 480 ? NAME_WIDTH_PHONE : NAME_WIDTH;
 
-  const [frameHeight, setFrameHeight] = useState(0);
+  const [innerHeight, setInnerHeight] = useState(0);
   const [sort, setSort] = useState<KpiSort>(DEFAULT_SORT);
   // Which column's explanation is open, if any. v1's headers carried these as
   // little info popovers; here the marker is a tap target and the text reads in
@@ -58,7 +58,7 @@ export function KpiTable({ facilities, onOpen }: KpiTableProps) {
   const cellsRef = useRef<ScrollViewInstance>(null);
   const offsets = useRef({ names: 0, cells: 0 });
 
-  const bodyHeight = Math.max(frameHeight - HEADER_HEIGHT - FOOTER_HEIGHT, 0);
+  const bodyHeight = Math.max(innerHeight - HEADER_HEIGHT - FOOTER_HEIGHT, 0);
   const rows = useMemo(() => sortFacilities(facilities, sort), [facilities, sort]);
 
   /**
@@ -85,11 +85,15 @@ export function KpiTable({ facilities, onOpen }: KpiTableProps) {
     sort.key === key ? (sort.direction === 'asc' ? ' ▲' : ' ▼') : '';
 
   return (
-    <View
-      style={[styles.frame, { borderColor: theme.border }]}
-      onLayout={(event) => setFrameHeight(event.nativeEvent.layout.height)}>
-      {frameHeight > 0 ? (
-        <View style={styles.panes}>
+    <View style={[styles.frame, { borderColor: theme.border }]}>
+      {/* Measured inside the frame's border, not on it: with the outer height the
+          panes were two points too tall, which lifted the label column's footer
+          just above the metric footers beside it. */}
+      <View
+        style={styles.panes}
+        onLayout={(event) => setInnerHeight(event.nativeEvent.layout.height)}>
+        {innerHeight > 0 ? (
+          <>
           {/* Sticky label column: outside the horizontal scroll, so it cannot move. */}
           <View style={[styles.labelPane, { width: nameWidth, borderColor: theme.border }]}>
             <Pressable
@@ -168,9 +172,9 @@ export function KpiTable({ facilities, onOpen }: KpiTableProps) {
           <ScrollView
             horizontal
             style={styles.metricScroll}
-            contentContainerStyle={{ height: frameHeight }}
+              contentContainerStyle={{ height: innerHeight }}
             showsHorizontalScrollIndicator>
-            <View style={{ height: frameHeight }}>
+            <View style={{ height: innerHeight }}>
               <View style={[styles.headerRow, { height: HEADER_HEIGHT }]}>
                 {KPI_COLUMNS.map((column) => (
                   <View
@@ -295,8 +299,9 @@ export function KpiTable({ facilities, onOpen }: KpiTableProps) {
               </View>
             </View>
           </ScrollView>
-        </View>
-      ) : null}
+        </>
+        ) : null}
+      </View>
 
       <MetroDialog
         visible={hint !== null}

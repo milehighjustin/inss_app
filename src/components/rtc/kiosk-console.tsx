@@ -633,10 +633,18 @@ export function KioskConsole() {
 
       {devices.length > 0 ? (
         wide ? (
-          // On a desktop the list owns its column and scrolls on its own.
-          <ScrollView style={styles.deviceScroll} showsVerticalScrollIndicator={false}>
-            {deviceRows}
-          </ScrollView>
+          // On a desktop the list owns its column: a framed container that takes
+          // the height left under the counts and scrolls inside it, so the last
+          // row is never cut off by the window and the scrollbar says so.
+          <View
+            style={[
+              styles.deviceFrame,
+              { borderColor: theme.border, backgroundColor: theme.background },
+            ]}>
+            <ScrollView style={styles.deviceScroll} showsVerticalScrollIndicator>
+              {deviceRows}
+            </ScrollView>
+          </View>
         ) : (
           // On a phone the rows scroll with the page instead, so the list can
           // never spill over the call stage.
@@ -912,6 +920,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: Spacing.three,
+    // Without this a flex row refuses to shrink below its tallest child, and the
+    // list would push the page rather than scroll inside its column.
+    minHeight: 0,
   },
   bodyScroll: {
     flex: 1,
@@ -922,15 +933,25 @@ const styles = StyleSheet.create({
   },
   devicePanel: {
     gap: Spacing.two,
+    minHeight: 0,
   },
   devicePanelWide: {
     width: 340,
     maxWidth: '40%',
+    minHeight: 0,
   },
   devicePanelStacked: {},
+  deviceFrame: {
+    borderWidth: 1,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
+    flex: 1,
+    minHeight: 0,
+  },
   deviceScroll: {
     // The column's height is the row's; the list takes what is left of it.
     flex: 1,
+    minHeight: 0,
   },
   stage: {
     position: 'relative',

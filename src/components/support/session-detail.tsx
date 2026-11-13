@@ -224,6 +224,16 @@ export function SessionDetail({
           {staff ? (
             <View style={styles.action}>
               <MetroButton
+                label={`${session.name}’s metrics`}
+                variant="ghost"
+                onPress={() =>
+                  router.push({
+                    pathname: '/admin/support/user/[userId]',
+                    params: { userId: session.userId, name: session.name },
+                  })
+                }
+              />
+              <MetroButton
                 label={`All of ${session.name}’s sessions`}
                 variant="ghost"
                 onPress={() =>
@@ -249,6 +259,8 @@ export function SessionDetail({
 const styles = StyleSheet.create({
   action: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
   },
   footnote: {
     fontSize: 12,

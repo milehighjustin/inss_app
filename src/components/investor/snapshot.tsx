@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useMetro } from '@/components/metro';
 import { MetroType, Metrics, Radius, Spacing } from '@/constants/metro';
@@ -10,7 +10,7 @@ import {
   type InvestorData,
   type InvestorLocation,
 } from '@/lib/investor';
-import { AllocationPie, allocationColor } from './allocation-pie';
+import { AllocationPie, AllocationTooltip, allocationColor } from './allocation-pie';
 
 export interface PortfolioSnapshotProps {
   data: InvestorData;
@@ -54,6 +54,11 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
   const [view, setView] = useState<AllocationView>('pie');
   const [chartWidth, setChartWidth] = useState(0);
 
+  // v1 answers a pointer over a slice with the property, its equity and its
+  // share; the bar gets the same readout so the two views answer alike.
+  const [barWidth, setBarWidth] = useState(0);
+  const [barHover, setBarHover] = useState<{ index: number; x: number } | null>(null);
+
   // The measured width is exact once layout reports it, and the window-derived
   // width covers the first paint — a chart that waits for a measurement can stay
   // blank when the layout event lands before the screen has a size.
@@ -86,6 +91,59 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
         .sort((left, right) => right.share - left.share),
     [data.locations],
   );
+
+  // Each segment's place along the bar, as fractions of the whole, so the
+  // readout can sit over the segment the pointer is on.
+  const totalShare = shares.reduce((sum, entry) => sum + entry.share, 0) || 1;
+  let barCursor = 0;
+  const segments = shares.map((entry, index) => {
+    const from = barCursor;
+    barCursor += entry.share / totalShare;
+    return { entry, index, from, to: barCursor };
+  });
+
+  const TOOLTIP_WIDTH = 178;
+  const hoveredSegment = barHover ? segments[barHover.index] : null;
+  // The bar fills the chart column, so the measured width answers first and the
+  // container's own width covers the first paint.
+  const barPixels = barWidth > 0 ? barWidth : available;
+  const barTooltipLeft = barHover
+    ? Math.min(Math.max(barHover.x - 40, 0), Math.max(0, barPixels - TOOLTIP_WIDTH))
+    : 0;
+
+  // The bar answers the pointer the way the pie does: one listener on the strip,
+  // the segment worked out from the x position. Per-segment hover handlers are
+  // not reliable across the web and native pressables.
+  const barRef = useRef<ComponentRef<typeof View>>(null);
+  const barHitRef = useRef<(x: number) => number | null>(() => null);
+  barHitRef.current = (x: number) => {
+    const width = barWidth > 0 ? barWidth : available;
+    if (!segments.length || width <= 0) return null;
+    const fraction = Math.min(Math.max(x / width, 0), 0.9999);
+    const found = segments.findIndex((seg) => fraction >= seg.from && fraction < seg.to);
+    return found >= 0 ? found : segments.length - 1;
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || view !== 'bar') return;
+    const node = barRef.current as unknown as HTMLElement | null;
+    if (!node || typeof node.addEventListener !== 'function') return;
+
+    const move = (event: PointerEvent) => {
+      const rect = node.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const index = barHitRef.current(x);
+      setBarHover(index === null ? null : { index, x });
+    };
+    const leave = () => setBarHover(null);
+
+    node.addEventListener('pointermove', move);
+    node.addEventListener('pointerleave', leave);
+    return () => {
+      node.removeEventListener('pointermove', move);
+      node.removeEventListener('pointerleave', leave);
+    };
+  }, [view]);
 
   const invested = data.locations.reduce(
     (total, location) => total + (Number(location.equity.investorInvestedTotal) || 0),
@@ -153,25 +211,38 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
               />
             </View>
           ) : (
-            <View style={[styles.bar, { backgroundColor: theme.surface }]}>
-              {shares.map((entry, index) => (
-                <Pressable
-                  key={entry.location.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${entry.location.departmentName}, ${investorPct(
-                    entry.share,
-                  )} of your portfolio`}
-                  onPress={() => onOpenLocation(entry.location)}
-                  style={({ pressed }) => [
-                    styles.segment,
-                    {
-                      flexGrow: entry.share,
-                      backgroundColor: allocationColor(index),
-                      opacity: pressed ? 0.6 : 1,
-                    },
-                  ]}
+            <View ref={barRef} style={styles.barWrap}>
+              <View
+                style={[styles.bar, { backgroundColor: theme.surface }]}
+                onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}>
+                {segments.map(({ entry, index }) => (
+                  <Pressable
+                    key={entry.location.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${entry.location.departmentName}, ${investorPct(
+                      entry.share,
+                    )} of your portfolio`}
+                    onPress={() => onOpenLocation(entry.location)}
+                    style={({ pressed }) => [
+                      styles.segment,
+                      {
+                        flexGrow: entry.share,
+                        backgroundColor: allocationColor(index),
+                        opacity: pressed ? 0.6 : 1,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+
+              {hoveredSegment ? (
+                <AllocationTooltip
+                  location={hoveredSegment.entry.location}
+                  left={barTooltipLeft}
+                  top={58}
+                  width={TOOLTIP_WIDTH}
                 />
-              ))}
+              ) : null}
             </View>
           )}
 
@@ -304,6 +375,10 @@ const styles = StyleSheet.create({
   pie: {
     alignItems: 'center',
     width: '100%',
+  },
+  barWrap: {
+    // The readout is drawn just under the strip, so it needs a box to sit in.
+    position: 'relative',
   },
   bar: {
     flexDirection: 'row',

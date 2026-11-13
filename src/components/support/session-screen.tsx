@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBanner,
@@ -8,7 +8,6 @@ import {
   MetroEmpty,
   MetroFigures,
   MetroList,
-  MetroListArea,
   MetroListRow,
   MetroLoading,
   MetroPager,
@@ -16,7 +15,7 @@ import {
   useMetro,
   type MetroFigure,
 } from '@/components/metro';
-import { Spacing } from '@/constants/metro';
+import { Radius, Spacing } from '@/constants/metro';
 import { formatDuration, formatRate } from '@/lib/admin/performance';
 import {
   ageLabel,
@@ -247,60 +246,70 @@ export function SupportSessionScreen() {
 
   const alerts = data?.alerts ?? [];
 
-  const list = (
-    <MetroListArea>
-      {loading ? (
-        <MetroLoading label="Reading the alerts" />
-      ) : alerts.length === 0 ? (
-        <MetroEmpty
-          title="No alerts yet"
-          message="An alert addressed to your tags appears here as soon as somebody scans a sign you cover."
+  const listBody = loading ? (
+    <MetroLoading label="Reading the alerts" />
+  ) : alerts.length === 0 ? (
+    <MetroEmpty
+      title="No alerts yet"
+      message="An alert addressed to your tags appears here as soon as somebody scans a sign you cover."
+    />
+  ) : (
+    <MetroList title="Alerts">
+      {alerts.map((alert) => (
+        <MetroListRow
+          key={alert.notificationId}
+          title={alert.title}
+          subtitle={[
+            alert.locationName ?? alert.qrCodeName ?? 'No place attached',
+            alertOutcome(alert),
+            ageLabel(alert.ageSeconds),
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+          badge={
+            alert.canAccept
+              ? { label: 'Answerable', tone: 'accent' as const }
+              : alert.action === 'answered'
+                ? { label: 'Answered', tone: 'neutral' as const }
+                : alert.action === 'ignored'
+                  ? { label: 'Ignored', tone: 'danger' as const }
+                  : alert.action === 'expired'
+                    ? { label: 'Expired', tone: 'neutral' as const }
+                    : undefined
+          }
+          value={
+            alert.action === 'answered' && alert.answerSeconds != null
+              ? `${alert.answerSeconds}s`
+              : undefined
+          }
+          emphasis
+          accessory={
+            alert.canAccept ? (
+              <MetroButton
+                label="Accept"
+                size="compact"
+                loading={claiming === alert.notificationId}
+                onPress={() => void accept(alert)}
+              />
+            ) : undefined
+          }
         />
-      ) : (
-        <MetroList title="Alerts">
-          {alerts.map((alert) => (
-            <MetroListRow
-              key={alert.notificationId}
-              title={alert.title}
-              subtitle={[
-                alert.locationName ?? alert.qrCodeName ?? 'No place attached',
-                alertOutcome(alert),
-                ageLabel(alert.ageSeconds),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-              badge={
-                alert.canAccept
-                  ? { label: 'Answerable', tone: 'accent' as const }
-                  : alert.action === 'answered'
-                    ? { label: 'Answered', tone: 'neutral' as const }
-                    : alert.action === 'ignored'
-                      ? { label: 'Ignored', tone: 'danger' as const }
-                      : alert.action === 'expired'
-                        ? { label: 'Expired', tone: 'neutral' as const }
-                        : undefined
-              }
-              value={
-                alert.action === 'answered' && alert.answerSeconds != null
-                  ? `${alert.answerSeconds}s`
-                  : undefined
-              }
-              emphasis
-              accessory={
-                alert.canAccept ? (
-                  <MetroButton
-                    label="Accept"
-                    size="compact"
-                    loading={claiming === alert.notificationId}
-                    onPress={() => void accept(alert)}
-                  />
-                ) : undefined
-              }
-            />
-          ))}
-        </MetroList>
-      )}
-    </MetroListArea>
+      ))}
+    </MetroList>
+  );
+
+  // The same container as the kiosk console: on a wide screen the alerts sit in
+  // a framed pane that takes the height left under the shift and scrolls inside
+  // it, with the scrollbar showing. The pager below never moves, so the newest
+  // alert and the page control are both always where they were left.
+  const list = board ? (
+    <View style={[styles.listFrame, { borderColor: theme.border }]}>
+      <ScrollView style={styles.listScroll} showsVerticalScrollIndicator>
+        {listBody}
+      </ScrollView>
+    </View>
+  ) : (
+    <View>{listBody}</View>
   );
 
   return (
@@ -407,6 +416,17 @@ const styles = StyleSheet.create({
   },
   stats: {
     flex: 1,
+  },
+  listFrame: {
+    flex: 1,
+    minHeight: 0,
+    borderWidth: 1,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
+  },
+  listScroll: {
+    flex: 1,
+    minHeight: 0,
   },
   footer: {
     paddingBottom: Spacing.two,

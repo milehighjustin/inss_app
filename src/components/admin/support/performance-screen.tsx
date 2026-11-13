@@ -105,7 +105,7 @@ export function SupportPerformanceScreen() {
   const peopleSection = (
     <MetroSection
       title="People"
-      hint="Everyone the alerts reached, worst coverage first. Open a person for their sessions.">
+      hint="Everyone the alerts reached, busiest first. Open a person for their numbers.">
       {!report || report.people.length === 0 ? (
         <MetroEmpty
           title="Nothing yet"
@@ -129,7 +129,7 @@ export function SupportPerformanceScreen() {
               emphasis
               onPress={() =>
                 router.push({
-                  pathname: '/admin/support/sessions',
+                  pathname: '/admin/support/user/[userId]',
                   params: { userId: person.userId, name: person.name },
                 })
               }

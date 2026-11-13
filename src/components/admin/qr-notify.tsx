@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
-  MetroBadge,
   MetroBanner,
   MetroButton,
   MetroCheckbox,
@@ -16,10 +15,7 @@ import {
 import { useMetro } from '@/components/metro/use-metro';
 import { Spacing } from '@/constants/metro';
 import {
-  codeNotifications,
   listNotificationTags,
-  statusLabel,
-  type NotificationRecord,
   type NotificationTag,
 } from '@/lib/admin/notifications';
 import {
@@ -67,7 +63,6 @@ export function QrNotifySection({
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<NotificationRecord[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,24 +81,6 @@ export function QrNotifySection({
       cancelled = true;
     };
   }, []);
-
-  // What this code has actually done, so a sign that is not being scanned is
-  // visible as silence rather than as a setting that looks correct.
-  useEffect(() => {
-    let cancelled = false;
-
-    codeNotifications(code.id, 6)
-      .then((rows) => {
-        if (!cancelled) setAlerts(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setAlerts([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [code.id]);
 
   /** Active tags, plus any this code already uses so they can be taken off. */
   const choices = useMemo(
@@ -284,39 +261,6 @@ export function QrNotifySection({
         />
       </View>
 
-      <View style={styles.alerts}>
-        <MetroLabel>Recent alerts</MetroLabel>
-        <Text style={[styles.summary, { color: theme.textDim }]}>
-          Three scans in a row ring once: a repeat inside the quiet window is recorded, not sent.
-        </Text>
-
-        {alerts.length === 0 ? (
-          <Text style={[styles.summary, { color: theme.textDim }]}>
-            Nothing has been sent for this code yet.
-          </Text>
-        ) : (
-          alerts.map((alert) => (
-            <View key={alert._id} style={[styles.alert, { borderTopColor: theme.border }]}>
-              <View style={styles.alertHead}>
-                <Text style={[styles.alertTitle, { color: theme.text }]} numberOfLines={1}>
-                  {alert.title}
-                </Text>
-                <MetroBadge label={statusLabel(alert)} />
-              </View>
-              <Text style={[styles.summary, { color: theme.textDim }]} numberOfLines={1}>
-                {when(alert.createdAt)} · {alert.priority} ·{' '}
-                {alert.tags.length > 0 ? alert.tags.join(', ') : `${alert.recipients.length} people`}
-              </Text>
-              {alert.note ? (
-                <Text style={[styles.summary, { color: theme.textDim }]} numberOfLines={2}>
-                  {alert.note}
-                </Text>
-              ) : null}
-            </View>
-          ))
-        )}
-      </View>
-
       <RecipientSheet
         visible={picking}
         users={users}
@@ -411,41 +355,9 @@ function RecipientSheet({
   );
 }
 
-/** A short, unambiguous timestamp: “31 Oct, 14:05”. */
-function when(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-
-  return date.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 const styles = StyleSheet.create({
   people: {
     gap: Spacing.two,
-  },
-  alerts: {
-    gap: Spacing.two,
-  },
-  alert: {
-    gap: 2,
-    paddingTop: 8,
-    borderTopWidth: 1,
-  },
-  alertHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  alertTitle: {
-    flexShrink: 1,
-    fontSize: 13,
-    fontWeight: 600,
   },
   actions: {
     flexDirection: 'row',
