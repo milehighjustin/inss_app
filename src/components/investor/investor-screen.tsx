@@ -14,7 +14,6 @@ import {
 import { Spacing } from '@/constants/metro';
 import {
   loadInvestor,
-  portfolioAsOf,
   type InvestorData,
   type InvestorLocation,
   type InvestorTarget,
@@ -30,18 +29,6 @@ const TABS = [
   { value: 'snapshot', label: 'Portfolio Snapshot' },
   { value: 'report', label: 'Portfolio Report' },
 ];
-
-/** `Sep 30, 2025`, read in UTC so a valuation date never slips a day. */
-function asOfLabel(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 /**
  * Portfolio, as v1 lays it out.
@@ -96,26 +83,10 @@ export function InvestorScreen({ actingAs }: { actingAs?: InvestorTarget }) {
     [data, activeId],
   );
 
-  // How big the portfolio is and how fresh it is — the two facts an investor
-  // checks before reading a number, kept in the page header rather than buried
-  // in a property panel.
-  const subtitle = useMemo(() => {
-    if (!data) return undefined;
-    const count = data.locations.length;
-    const asOf = portfolioAsOf(data);
-    return [
-      `${count} ${count === 1 ? 'property' : 'properties'}`,
-      asOf ? `As of ${asOfLabel(asOf)}` : null,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  }, [data]);
-
   return (
     <MetroScreen
       eyebrow={actingAs ? 'Investor Portal · Preview' : 'Investor Portal'}
       title="Portfolio"
-      subtitle={subtitle}
       width="wide"
       scroll={false}
       padding="compact"

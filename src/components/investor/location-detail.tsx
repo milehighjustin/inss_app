@@ -1,12 +1,11 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { MetroFigures, MetroHeading, useMetro, type MetroFigure } from '@/components/metro';
+import { MetroHeading, useMetro } from '@/components/metro';
 import { MetroType, Spacing } from '@/constants/metro';
 import { REPORT_MENU, type ReportKind } from '@/lib/reports';
 import {
   investorDate,
   investorMoney,
-  investorNegatedMoney,
   investorNumber,
   investorPct,
   type InvestorLocation,
@@ -32,6 +31,17 @@ interface DetailSection {
   divider: string;
   rows: DetailRow[];
 }
+
+/**
+ * Fixed row heights across the two panes.
+ *
+ * The label column is a pane of its own, so its rows are not measured against
+ * the values beside them — the heights are the agreement that keeps them lined
+ * up as the panel scrolls.
+ */
+const HEADER_HEIGHT = 54;
+const DIVIDER_HEIGHT = 40;
+const ROW_HEIGHT = 46;
 
 /**
  * One property, as v1's big modal shows it.
@@ -190,35 +200,6 @@ export function LocationDetail({
     { label: 'Loan Maturity Date', value: investorDate(location.loanMaturityDate) },
   ];
 
-  // The panel's statement: share, equity, what it is worth and what has been
-  // paid out. Same four numbers the portfolio shows for all properties at once.
-  const figures: MetroFigure[] = [
-    {
-      label: 'Your Equity Share',
-      value: investorPct(location.equity.investorSharePct, 2),
-      hint: `${investorMoney(location.equity.totalInvested)} of deal equity`,
-    },
-    {
-      label: 'Your Current Equity',
-      value: investorMoney(location.equity.investorInvestedTotal),
-      hint: `Started at ${investorMoney(location.equity.initialInvestmentDol)}`,
-    },
-    {
-      label: 'Est. Value Of Equity',
-      value: investorMoney(location.equity.investorInvestmentValueDol),
-      hint: `As of ${investorDate(location.valuationDate)}`,
-      tone: 'accent',
-    },
-    {
-      label: 'Dividends Paid',
-      value: investorMoney(location.equity.totalDividendsPaid),
-      hint:
-        location.equity.lastDividendDol > 0
-          ? `Last payment ${investorMoney(location.equity.lastDividendDol)}`
-          : undefined,
-    },
-  ];
-
   // Every account's slice of this property's equity, as a share of the total
   // the rows add up to.
   const allocationTotal = location.equity.cumulativeByAccount.reduce(
@@ -228,50 +209,21 @@ export function LocationDetail({
 
   const comparison = (
     <View style={styles.comparison}>
-      <MetroHeading>How this property compares</MetroHeading>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator style={styles.tableScroll}>
-        <View style={styles.table}>
-          <View style={[styles.headerRow, { borderBottomColor: theme.text }]}>
-            <View style={[styles.headerCell, styles.titleCell]} />
-            <Text
-              numberOfLines={2}
-              style={[
-                styles.headerCell,
-                styles.headerText,
-                styles.valueCell,
-                styles.number,
-                { color: theme.accent },
-              ]}>
-              {location.departmentName}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.headerCell,
-                styles.headerText,
-                styles.valueCell,
-                styles.number,
-                { color: theme.text },
-              ]}>
-              Your Portfolio
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.headerCell,
-                styles.headerText,
-                styles.valueCell,
-                styles.number,
-                { color: theme.textDim },
-              ]}>
-              ISS Portfolio
-            </Text>
-          </View>
+      {/* The first column is sticky: this property's names live in a pane of
+          their own, outside the horizontal scroll, so a number always has its
+          label however many columns the panel is showing. */}
+      <View style={styles.tableRow}>
+        <View style={[styles.labelPane, { borderRightColor: theme.border }]}>
+          <View style={[styles.labelHeader, { height: HEADER_HEIGHT }]} />
 
           {sections.map((section) => (
             <View key={section.divider}>
-              <View style={[styles.dividerRow, { borderBottomColor: theme.border }]}>
+              <View
+                style={[
+                  styles.dividerRow,
+                  styles.labelDivider,
+                  { height: DIVIDER_HEIGHT, borderBottomColor: theme.border },
+                ]}>
                 <Text style={[styles.dividerText, { color: theme.textDim }]}>
                   {section.divider.toUpperCase()}
                 </Text>
@@ -279,65 +231,132 @@ export function LocationDetail({
               {section.rows.map((row) => (
                 <View
                   key={row.title}
-                  style={[styles.row, { borderBottomColor: theme.border }]}>
-                  <Text
-                    numberOfLines={2}
-                    style={[styles.cell, styles.titleCell, { color: theme.text }]}>
+                  style={[
+                    styles.labelCell,
+                    { height: ROW_HEIGHT, borderBottomColor: theme.border },
+                  ]}>
+                  <Text numberOfLines={2} style={[styles.cell, { color: theme.text }]}>
                     {row.title}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.cell,
-                      styles.valueCell,
-                      styles.number,
-                      styles.numbers,
-                      styles.valueStrong,
-                      { color: theme.text },
-                    ]}>
-                    {row.location ?? '-'}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.cell,
-                      styles.valueCell,
-                      styles.number,
-                      styles.numbers,
-                      styles.valueMedium,
-                      { color: theme.text },
-                    ]}>
-                    {row.portfolio ?? '-'}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.cell,
-                      styles.valueCell,
-                      styles.number,
-                      styles.numbers,
-                      { color: theme.textDim },
-                    ]}>
-                    {row.organization ?? '-'}
                   </Text>
                 </View>
               ))}
             </View>
           ))}
         </View>
-      </ScrollView>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator style={styles.tableScroll}>
+          <View>
+            <View
+              style={[
+                styles.headerRow,
+                { height: HEADER_HEIGHT, borderBottomColor: theme.text },
+              ]}>
+              <Text
+                numberOfLines={2}
+                style={[
+                  styles.headerCell,
+                  styles.headerText,
+                  styles.valueCell,
+                  styles.number,
+                  { color: theme.accent },
+                ]}>
+                {location.departmentName}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.headerCell,
+                  styles.headerText,
+                  styles.valueCell,
+                  styles.number,
+                  { color: theme.text },
+                ]}>
+                Your Portfolio
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.headerCell,
+                  styles.headerText,
+                  styles.valueCell,
+                  styles.number,
+                  { color: theme.textDim },
+                ]}>
+                ISS Portfolio
+              </Text>
+            </View>
+
+            {sections.map((section) => (
+              <View key={section.divider}>
+                <View
+                  style={[
+                    styles.dividerRow,
+                    { height: DIVIDER_HEIGHT, borderBottomColor: theme.border },
+                  ]}
+                />
+                {section.rows.map((row) => (
+                  <View
+                    key={row.title}
+                    style={[
+                      styles.row,
+                      { height: ROW_HEIGHT, borderBottomColor: theme.border },
+                    ]}>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.cell,
+                        styles.valueCell,
+                        styles.number,
+                        styles.numbers,
+                        styles.valueStrong,
+                        { color: theme.text },
+                      ]}>
+                      {row.location ?? '-'}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.cell,
+                        styles.valueCell,
+                        styles.number,
+                        styles.numbers,
+                        styles.valueMedium,
+                        { color: theme.text },
+                      ]}>
+                      {row.portfolio ?? '-'}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.cell,
+                        styles.valueCell,
+                        styles.number,
+                        styles.numbers,
+                        { color: theme.textDim },
+                      ]}>
+                      {row.organization ?? '-'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
 
       {location.notes.length > 0 ? (
         <View style={styles.notes}>
-          <MetroHeading>{`Notes · ${location.notes.length}`}</MetroHeading>
+          <Text style={[styles.blockTitle, { color: theme.text }]}>Property Notes</Text>
           {location.notes.map((note, index) => (
             <View
               key={`${note.createdAt}-${index}`}
               style={[styles.note, index > 0 && { borderTopWidth: 1, borderTopColor: theme.border }]}>
-              <Text style={[styles.noteDate, { color: theme.textDim }]}>
-                {investorDate(note.createdAt).toUpperCase()}
+              <Text style={[styles.noteText, { color: theme.text }]}>
+                {note.content}{' '}
+                <Text style={[styles.noteDate, { color: theme.textDim }]}>
+                  {`(${investorDate(note.createdAt)})`}
+                </Text>
               </Text>
-              <Text style={[styles.noteText, { color: theme.text }]}>{note.content}</Text>
             </View>
           ))}
         </View>
@@ -348,7 +367,7 @@ export function LocationDetail({
   const side = (
     <View style={styles.side}>
       <View style={styles.sideBlock}>
-        <MetroHeading>Property details</MetroHeading>
+        <MetroHeading>Property Details</MetroHeading>
         <View>
           {details.map((detail, index) => (
             <View
@@ -367,7 +386,7 @@ export function LocationDetail({
       </View>
 
       <View style={styles.sideBlock}>
-        <MetroHeading>Investment allocation</MetroHeading>
+        <MetroHeading>Investment Allocation</MetroHeading>
         {location.equity.cumulativeByAccount.length === 0 ? (
           <Text style={[styles.emptyNote, { color: theme.textDim }]}>No equity accounts</Text>
         ) : (
@@ -432,26 +451,11 @@ export function LocationDetail({
         </View>
       </View>
 
-      <View style={styles.sideBlock}>
-        <MetroHeading>Property value</MetroHeading>
-        <MetroFigures
-          size="medium"
-          figures={[
-            { label: 'Est. Property Value', value: investorMoney(location.propertyValue) },
-            {
-              label: 'Est. Closing Costs',
-              value: investorNegatedMoney((location.closingCostPct / 100) * location.propertyValue),
-            },
-          ]}
-        />
-      </View>
     </View>
   );
 
   return (
     <View style={styles.root}>
-      <MetroFigures figures={figures} />
-
       <View style={[styles.body, wide ? styles.bodyWide : null]}>
         {comparison}
         {side}
@@ -477,11 +481,35 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     minWidth: 0,
   },
-  tableScroll: {
-    flexGrow: 0,
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  table: {
-    minWidth: 620,
+  tableScroll: {
+    flex: 1,
+    minWidth: 0,
+  },
+  /** The sticky first column: metric names, outside the horizontal scroll. */
+  labelPane: {
+    width: 216,
+    borderRightWidth: 1,
+  },
+  labelHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
+  },
+  labelDivider: {
+    justifyContent: 'center',
+  },
+  labelCell: {
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    paddingRight: 8,
+  },
+  blockTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: 700,
   },
   headerRow: {
     flexDirection: 'row',
@@ -502,8 +530,7 @@ const styles = StyleSheet.create({
   dividerRow: {
     borderBottomWidth: 1,
     paddingHorizontal: 8,
-    paddingTop: Spacing.four,
-    paddingBottom: 6,
+    justifyContent: 'center',
   },
   dividerText: {
     fontSize: 10,
@@ -521,9 +548,6 @@ const styles = StyleSheet.create({
     lineHeight: MetroType.subtle.lineHeight,
     paddingHorizontal: 8,
     paddingVertical: 10,
-  },
-  titleCell: {
-    width: 216,
   },
   valueCell: {
     width: 116,

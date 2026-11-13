@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { MetroDialog, useMetro } from '@/components/metro';
-import { MetroType } from '@/constants/metro';
+import { MetroType, Radius } from '@/constants/metro';
 import type { KpiFacility } from '@/lib/kpi';
 import { DEFAULT_SORT, KPI_COLUMNS, nextSort, sortFacilities, type KpiSort } from './kpi-columns';
 
@@ -313,6 +313,9 @@ const styles = StyleSheet.create({
   frame: {
     flex: 1,
     borderWidth: 1,
+    // The list sits in a rounded plane like every other container; the rows
+    // still read as a grid because only the outer corners are soft.
+    borderRadius: Radius.card,
     overflow: 'hidden',
   },
   panes: {

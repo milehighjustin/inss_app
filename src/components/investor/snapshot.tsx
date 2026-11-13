@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { MetroFigures, useMetro, type MetroFigure } from '@/components/metro';
+import { useMetro } from '@/components/metro';
 import { MetroType, Metrics, Radius, Spacing } from '@/constants/metro';
 import { getStoredAllocationView, setStoredAllocationView } from '@/lib/preferences/storage';
 import {
   investorMoney,
   investorPct,
-  investorSignedMoney,
-  investorSignedPct,
   type InvestorData,
   type InvestorLocation,
 } from '@/lib/investor';
@@ -20,18 +18,20 @@ export interface PortfolioSnapshotProps {
 }
 
 /**
- * v1's Portfolio Snapshot: the equity allocation at the top, the portfolio's
- * money under it, and the confidentiality note at the bottom.
+ * v1's Portfolio Snapshot, with the chart in either shape.
  *
- * The chart opens as v1's pie, with the same colours and the same outboard
- * labels; the flat bar is the alternate for anyone who prefers it, and the choice
- * sticks per device. The legend under either carries the property name, its share
- * and the money in it, which v1's pie only showed on hover.
+ * The heading, the line under it, the two balances and the confidentiality note
+ * are v1's, word for word. The equity allocation opens as v1's pie; the flat bar
+ * is the alternate view, and the choice sticks per device — a reader who prefers
+ * the bar should not have to ask for it again on the next visit.
  *
- * The three figures below the chart are the portfolio in one line — what is
- * invested, what it is worth now, and what has been paid out — because an
- * investor opens this screen to answer exactly those three questions. The two
- * balances keep v1's names so nothing has moved.
+ * The bar needs a key, since one stacked strip has no names on it, so its legend
+ * carries each property's share and the money in it. The pie already names its
+ * slices on a wide screen; on a phone, where its labels are hidden, the legend
+ * appears there too.
+ *
+ * The two balances are summed from the properties rather than read off the
+ * portfolio totals, which is what v1's table does.
  */
 type AllocationView = 'pie' | 'bar';
 
@@ -51,8 +51,6 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
   const theme = useMetro();
   const { width: windowWidth } = useWindowDimensions();
 
-  // v1's chart is what someone should see first; the flat bar is the alternate
-  // for anyone who prefers it. The choice sticks per device.
   const [view, setView] = useState<AllocationView>('pie');
   const [chartWidth, setChartWidth] = useState(0);
 
@@ -60,6 +58,10 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
   // width covers the first paint — a chart that waits for a measurement can stay
   // blank when the layout event lands before the screen has a size.
   const available = chartWidth > 0 ? chartWidth : Math.min(900, windowWidth - Metrics.gutter * 2);
+
+  // v1 shows rim labels from its `md` breakpoint up and a solid pie with the
+  // legend under it below that.
+  const withLabels = available >= 640;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,47 +87,23 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
     [data.locations],
   );
 
-  const figures = useMemo<MetroFigure[]>(() => {
-    const invested = Number(data.portfolio.investorInvestedTotal) || 0;
-    const value = Number(data.portfolio.investorInvestmentValueDol) || 0;
-    const change = value - invested;
-    const changePct = invested > 0 ? (change / invested) * 100 : 0;
-    const dividends = Number(data.portfolio.totalDividendsPaid) || 0;
-    const lastDividend = Number(data.portfolio.lastDividendDol) || 0;
-
-    return [
-      {
-        label: 'Current Invested Equity',
-        value: investorMoney(invested),
-        hint:
-          shares.length > 0
-            ? `Across ${shares.length} ${shares.length === 1 ? 'property' : 'properties'}`
-            : undefined,
-      },
-      {
-        label: 'Current Value Of Equity',
-        value: investorMoney(value),
-        hint:
-          invested > 0 && change !== 0
-            ? `${investorSignedMoney(change)} ${investorSignedPct(changePct)}`
-            : undefined,
-      },
-      {
-        label: 'Total Dividends Paid',
-        value: investorMoney(dividends),
-        hint: lastDividend > 0 ? `Last payment ${investorMoney(lastDividend)}` : undefined,
-      },
-    ];
-  }, [data.portfolio, shares.length]);
+  const invested = data.locations.reduce(
+    (total, location) => total + (Number(location.equity.investorInvestedTotal) || 0),
+    0,
+  );
+  const value = data.locations.reduce(
+    (total, location) => total + (Number(location.equity.investorInvestmentValueDol) || 0),
+    0,
+  );
 
   return (
     <View style={styles.root}>
       <View style={styles.heading}>
         <View style={styles.headingText}>
-          <Text style={[styles.title, { color: theme.text }]}>Portfolio Equity Allocation</Text>
+          <Text style={[styles.title, { color: theme.textDim }]}>Portfolio Equity Allocation</Text>
           <Text style={[styles.subtitle, { color: theme.textDim }]}>
             {shares.length > 0
-              ? 'Tap a property for its details'
+              ? 'Click chart for property details'
               : 'No equity is recorded against this portfolio yet'}
           </Text>
         </View>
@@ -170,7 +148,7 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
               <AllocationPie
                 slices={shares}
                 available={available}
-                showLabels={available >= 520}
+                showLabels={withLabels}
                 onOpenLocation={onOpenLocation}
               />
             </View>
@@ -197,37 +175,74 @@ export function PortfolioSnapshot({ data, onOpenLocation }: PortfolioSnapshotPro
             </View>
           )}
 
-          <View style={styles.legend}>
-            {shares.map((entry, index) => (
-              <Pressable
-                key={entry.location.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${entry.location.departmentName}`}
-                onPress={() => onOpenLocation(entry.location)}
-                style={({ pressed }) => [
-                  styles.legendRow,
-                  { backgroundColor: pressed ? theme.surface : 'transparent' },
-                ]}>
-                <View style={[styles.swatch, { backgroundColor: allocationColor(index) }]} />
-                <Text numberOfLines={1} style={[styles.legendName, { color: theme.text }]}>
-                  {entry.location.departmentName}
-                </Text>
-                <Text style={[styles.legendShare, styles.numbers, { color: theme.textDim }]}>
-                  {investorPct(entry.share)}
-                </Text>
-                <Text style={[styles.legendMoney, styles.numbers, { color: theme.text }]}>
-                  {investorMoney(entry.location.equity.investorInvestedTotal)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {/* v1's phone legend: a colour and a name under the solid pie. */}
+          {view === 'pie' ? (
+            !withLabels ? (
+              <View style={styles.legend}>
+                {shares.map((entry, index) => (
+                  <Pressable
+                    key={entry.location.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${entry.location.departmentName}`}
+                    onPress={() => onOpenLocation(entry.location)}
+                    style={({ pressed }) => [
+                      styles.legendRow,
+                      { backgroundColor: pressed ? theme.surface : 'transparent' },
+                    ]}>
+                    <View style={[styles.swatch, { backgroundColor: allocationColor(index) }]} />
+                    <Text numberOfLines={1} style={[styles.legendName, { color: theme.textDim }]}>
+                      {entry.location.departmentName}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null
+          ) : (
+            <View style={styles.legend}>
+              {shares.map((entry, index) => (
+                <Pressable
+                  key={entry.location.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${entry.location.departmentName}`}
+                  onPress={() => onOpenLocation(entry.location)}
+                  style={({ pressed }) => [
+                    styles.legendRow,
+                    styles.legendRowDetailed,
+                    { backgroundColor: pressed ? theme.surfaceStrong : 'transparent' },
+                  ]}>
+                  <View style={[styles.swatch, { backgroundColor: allocationColor(index) }]} />
+                  <Text numberOfLines={1} style={[styles.legendName, { color: theme.text }]}>
+                    {entry.location.departmentName}
+                  </Text>
+                  <Text style={[styles.legendShare, styles.numbers, { color: theme.textDim }]}>
+                    {investorPct(entry.share)}
+                  </Text>
+                  <Text style={[styles.legendMoney, styles.numbers, { color: theme.text }]}>
+                    {investorMoney(entry.location.equity.investorInvestedTotal)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
       ) : null}
 
-      <MetroFigures figures={figures} />
+      <View style={styles.summary}>
+        <View style={styles.summaryRow}>
+          <Text style={[styles.summaryLabel, { color: theme.textDim }]}>Current Invested Equity</Text>
+          <Text style={[styles.summaryValue, styles.numbers, { color: theme.textDim }]}>
+            {investorMoney(invested)}
+          </Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={[styles.summaryLabel, { color: theme.textDim }]}>Current Value Of Equity</Text>
+          <Text style={[styles.summaryValue, styles.numbers, { color: theme.textDim }]}>
+            {investorMoney(value)}
+          </Text>
+        </View>
+      </View>
 
-      <View style={[styles.footnote, { borderTopColor: theme.border }]}>
-        <Text style={[styles.footnoteLabel, { color: theme.textDim }]}>CONFIDENTIAL</Text>
+      <View style={styles.footnote}>
         <Text style={[styles.disclaimer, { color: theme.textDim }]}>{DISCLAIMER}</Text>
       </View>
     </View>
@@ -255,13 +270,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    fontSize: MetroType.subheader.fontSize,
-    lineHeight: MetroType.subheader.lineHeight,
-    fontWeight: MetroType.subheader.fontWeight,
+    // v1: `text-2xl font-bold` in grey.
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: 700,
   },
   subtitle: {
-    fontSize: MetroType.subtle.fontSize,
-    lineHeight: MetroType.subtle.lineHeight,
+    // v1: `font-semibold`.
+    fontSize: MetroType.body.fontSize,
+    lineHeight: MetroType.body.lineHeight,
+    fontWeight: 600,
   },
   toggle: {
     flexDirection: 'row',
@@ -281,6 +299,7 @@ const styles = StyleSheet.create({
   },
   chartBlock: {
     gap: Spacing.three,
+    paddingTop: Spacing.two,
   },
   pie: {
     alignItems: 'center',
@@ -290,6 +309,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 52,
     gap: 2,
+    borderRadius: Radius.control,
+    overflow: 'hidden',
   },
   segment: {
     flexBasis: 0,
@@ -297,19 +318,23 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: Spacing.two,
   },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    // Two columns on a desktop, one on a phone: wide enough that a property name
-    // is never cut off, which is how v1's legend read.
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    maxWidth: 320,
+  },
+  /** Two columns on a desktop, one on a phone, as the earlier legend read. */
+  legendRowDetailed: {
     flexBasis: 340,
     flexGrow: 1,
     maxWidth: 440,
     paddingVertical: 8,
-    paddingHorizontal: 8,
   },
   swatch: {
     width: 12,
@@ -330,27 +355,46 @@ const styles = StyleSheet.create({
   legendMoney: {
     fontSize: MetroType.subtle.fontSize,
     lineHeight: MetroType.subtle.lineHeight,
-    minWidth: 88,
+    minWidth: 84,
+    textAlign: 'right',
+    fontWeight: 600,
+  },
+  summary: {
+    alignSelf: 'center',
+    gap: 6,
+    marginTop: Spacing.three,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.three,
+  },
+  summaryLabel: {
+    // v1: `font-semibold text-gray-500`, centred beside its figure.
+    fontSize: MetroType.body.fontSize,
+    lineHeight: MetroType.body.lineHeight,
+    fontWeight: 600,
+    textAlign: 'center',
+  },
+  summaryValue: {
+    fontSize: MetroType.body.fontSize,
+    lineHeight: MetroType.body.lineHeight,
+    fontWeight: 700,
+    minWidth: 110,
     textAlign: 'right',
   },
   footnote: {
-    paddingTop: Spacing.three,
-    gap: Spacing.two,
-    maxWidth: 720,
+    maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
-  },
-  footnoteLabel: {
-    fontSize: MetroType.eyebrow.fontSize,
-    lineHeight: MetroType.eyebrow.lineHeight,
-    letterSpacing: MetroType.eyebrow.letterSpacing,
-    fontWeight: MetroType.eyebrow.fontWeight,
-    textAlign: 'center',
+    paddingBottom: Spacing.five,
   },
   disclaimer: {
+    // v1: `text-sm text-justify`.
     fontSize: 12,
-    lineHeight: 18,
-    textAlign: 'center',
+    lineHeight: 19,
+    textAlign: 'justify',
   },
   /** Fixed-width digits so a column of money lines up. */
   numbers: {

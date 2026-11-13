@@ -94,8 +94,6 @@ function TopBar({ menuOpen, onOpenMenu }: { menuOpen: boolean; onOpenMenu: () =>
           boxShadow: Shadow.bar,
         },
       ]}>
-      <View style={[styles.accentLine, { backgroundColor: theme.accent }]} />
-
       <View style={styles.topBar}>
         <Pressable
           accessibilityRole="button"
@@ -266,9 +264,6 @@ const styles = StyleSheet.create({
   },
   barShell: {
     borderBottomWidth: 1,
-  },
-  accentLine: {
-    height: 3,
   },
   topBar: {
     flexDirection: 'row',

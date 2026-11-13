@@ -1,8 +1,16 @@
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ScrollViewInstance,
+} from 'react-native';
 
 import { useMetro } from '@/components/metro';
-import { MetroType, Spacing } from '@/constants/metro';
+import { MetroType, Radius, Spacing } from '@/constants/metro';
 import {
   investorDate,
   investorMoney,
@@ -31,7 +39,8 @@ interface ReportSection {
 }
 
 const HEADER_HEIGHT = 64;
-const ROW_HEIGHT = 40;
+const ROW_HEIGHT = 44;
+const DIVIDER_HEIGHT = 38;
 const LABEL_WIDTH = 210;
 const LOCATION_WIDTH = 120;
 const TOTAL_WIDTH = 118;
@@ -39,17 +48,23 @@ const TOTAL_WIDTH = 118;
 /**
  * v1's Portfolio Report.
  *
- * A row per metric, a column per property, then this investor's portfolio and
- * the organization's beside them. Section dividers are v1's, in v1's order, and
- * the arithmetic is v1's too — including printing `N/A` where v1 prints it
- * rather than inventing a number.
+ * A row per metric, a column per property, then this investor's portfolio and the
+ * organization's beside them. Section dividers, row names and the `N/A` cells are
+ * v1's, in v1's order.
  *
- * The header row is outside the vertical scroll and inside the horizontal one,
- * so property names stay above their columns whichever way the board moves.
+ * **The metric column is sticky.** The table is wider than any window once an
+ * investor holds a handful of properties, so the names live in a pane of their
+ * own outside the horizontal scroll — the same two-pane arrangement the KPI board
+ * uses — and the two panes are kept in step vertically by mirroring offsets. A
+ * number therefore always has its label, whichever way the reader has scrolled.
  */
 export function PortfolioReport({ data, onOpenLocation }: PortfolioReportProps) {
   const theme = useMetro();
   const [frameHeight, setFrameHeight] = useState(0);
+
+  const namesRef = useRef<ScrollViewInstance>(null);
+  const cellsRef = useRef<ScrollViewInstance>(null);
+  const offsets = useRef({ names: 0, cells: 0 });
 
   const sections = useMemo<ReportSection[]>(() => {
     const each = (get: (location: InvestorLocation) => string) => data.locations.map(get);
@@ -255,22 +270,72 @@ export function PortfolioReport({ data, onOpenLocation }: PortfolioReportProps) 
 
   const bodyHeight = Math.max(frameHeight - HEADER_HEIGHT, 0);
 
+  /** Mirrors one pane's vertical offset onto the other, without bouncing. */
+  const syncScroll =
+    (from: 'names' | 'cells') => (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = event.nativeEvent.contentOffset.y;
+      offsets.current[from] = y;
+
+      const other = from === 'names' ? 'cells' : 'names';
+      if (Math.abs(offsets.current[other] - y) < 0.5) return;
+
+      offsets.current[other] = y;
+      const target = from === 'names' ? cellsRef : namesRef;
+      target.current?.scrollTo({ y, animated: false });
+    };
+
+  const rowColor = (sectionIndex: number, rowIndex: number) =>
+    (sectionIndex + rowIndex) % 2 === 0 ? theme.background : theme.surface;
+
   return (
-    <View style={styles.root}>
-      <View
-        style={[styles.frame, { borderColor: theme.border }]}
-        onLayout={(event) => setFrameHeight(event.nativeEvent.layout.height)}>
-        {frameHeight > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator>
-            <View>
-              <View
-                style={[
-                  styles.headerRow,
-                  { height: HEADER_HEIGHT, backgroundColor: theme.surface },
-                ]}>
-                <View style={[styles.headerCell, styles.labelCell]}>
-                  <Text style={[styles.headerText, { color: theme.textDim }]}>METRIC</Text>
+    <View
+      style={[styles.frame, { borderColor: theme.border }]}
+      onLayout={(event) => setFrameHeight(event.nativeEvent.layout.height)}>
+      {frameHeight > 0 ? (
+        <View style={styles.panes}>
+          {/* Sticky first column: the metric names, outside the horizontal scroll. */}
+          <View style={[styles.labelPane, { borderRightColor: theme.border }]}>
+            <View style={[styles.headerCell, styles.labelHeader, { height: HEADER_HEIGHT }]} />
+
+            <ScrollView
+              ref={namesRef}
+              style={{ height: bodyHeight }}
+              showsVerticalScrollIndicator={false}
+              onScroll={syncScroll('names')}
+              scrollEventThrottle={16}>
+              {sections.map((section, sectionIndex) => (
+                <View key={section.divider}>
+                  <View style={[styles.dividerRow, { height: DIVIDER_HEIGHT, borderBottomColor: theme.border }]}>
+                    <Text style={[styles.dividerText, { color: theme.textDim }]}>
+                      {section.divider.toUpperCase()}
+                    </Text>
+                  </View>
+
+                  {section.rows.map((row, rowIndex) => (
+                    <View
+                      key={row.title}
+                      style={[
+                        styles.labelCell,
+                        {
+                          height: ROW_HEIGHT,
+                          backgroundColor: rowColor(sectionIndex, rowIndex),
+                          borderBottomColor: theme.border,
+                        },
+                      ]}>
+                      <Text numberOfLines={2} style={[styles.cellText, { color: theme.text }]}>
+                        {row.title}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Values: header, dividers and cells scroll sideways together. */}
+          <ScrollView horizontal style={styles.valueScroll} showsHorizontalScrollIndicator>
+            <View>
+              <View style={[styles.headerRow, { height: HEADER_HEIGHT }]}>
                 {data.locations.map((location) => (
                   <View key={location.id} style={[styles.headerCell, styles.locationCell]}>
                     <Text
@@ -278,7 +343,12 @@ export function PortfolioReport({ data, onOpenLocation }: PortfolioReportProps) 
                       onPress={() => onOpenLocation(location)}
                       accessibilityRole="button"
                       accessibilityLabel={`Open ${location.departmentName}`}
-                      style={[styles.headerText, styles.number, styles.numbers, { color: theme.accent }]}>
+                      style={[
+                        styles.headerText,
+                        styles.number,
+                        styles.numbers,
+                        { color: theme.accent },
+                      ]}>
                       {location.departmentName}
                     </Text>
                   </View>
@@ -301,14 +371,15 @@ export function PortfolioReport({ data, onOpenLocation }: PortfolioReportProps) 
                 </View>
               </View>
 
-              <ScrollView style={{ height: bodyHeight }} showsVerticalScrollIndicator>
+              <ScrollView
+                ref={cellsRef}
+                style={{ height: bodyHeight }}
+                showsVerticalScrollIndicator
+                onScroll={syncScroll('cells')}
+                scrollEventThrottle={16}>
                 {sections.map((section, sectionIndex) => (
                   <View key={section.divider}>
-                    <View style={[styles.dividerRow, { borderBottomColor: theme.border }]}>
-                      <Text style={[styles.dividerText, { color: theme.textDim }]}>
-                        {section.divider.toUpperCase()}
-                      </Text>
-                    </View>
+                    <View style={[styles.dividerRow, { height: DIVIDER_HEIGHT, borderBottomColor: theme.border }]} />
 
                     {section.rows.map((row, rowIndex) => (
                       <View
@@ -317,28 +388,15 @@ export function PortfolioReport({ data, onOpenLocation }: PortfolioReportProps) 
                           styles.row,
                           {
                             height: ROW_HEIGHT,
-                            backgroundColor:
-                              (sectionIndex + rowIndex) % 2 === 0 ? theme.background : theme.surface,
-                            borderColor: theme.border,
+                            backgroundColor: rowColor(sectionIndex, rowIndex),
+                            borderBottomColor: theme.border,
                           },
                         ]}>
-                        <View style={[styles.cell, styles.labelCell]}>
-                          <Text numberOfLines={2} style={[styles.cellText, { color: theme.text }]}>
-                            {row.title}
-                          </Text>
-                        </View>
                         {row.values.map((value, index) => (
-                          <View
-                            key={`${row.title}-${index}`}
-                            style={[styles.cell, styles.locationCell]}>
+                          <View key={`${row.title}-${index}`} style={[styles.cell, styles.locationCell]}>
                             <Text
                               numberOfLines={1}
-                              style={[
-                                styles.cellText,
-                                styles.number,
-                                styles.numbers,
-                                { color: theme.text },
-                              ]}>
+                              style={[styles.cellText, styles.number, styles.numbers, { color: theme.text }]}>
                               {value}
                             </Text>
                           </View>
@@ -380,25 +438,31 @@ export function PortfolioReport({ data, onOpenLocation }: PortfolioReportProps) 
               </ScrollView>
             </View>
           </ScrollView>
-        ) : null}
-      </View>
-
-      <Text style={[styles.caption, { color: theme.textDim }]}>
-        Amounts in US dollars unless shown as a percentage. Tap a property name to open it.
-      </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    gap: Spacing.two,
-  },
   frame: {
     flex: 1,
     borderWidth: 1,
+    // A soft outer corner, as every other container has; the cells inside keep
+    // their square hairlines.
+    borderRadius: Radius.card,
     overflow: 'hidden',
+  },
+  panes: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  labelPane: {
+    width: LABEL_WIDTH,
+    borderRightWidth: 1,
+  },
+  valueScroll: {
+    flex: 1,
   },
   /** The hairline that sets this investor's own column apart from the org's. */
   summaryStart: {
@@ -406,10 +470,6 @@ const styles = StyleSheet.create({
   },
   numbers: {
     fontVariant: ['tabular-nums'],
-  },
-  caption: {
-    fontSize: 11,
-    lineHeight: 16,
   },
   headerRow: {
     flexDirection: 'row',
@@ -421,6 +481,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingBottom: 8,
   },
+  labelHeader: {
+    borderBottomWidth: 1,
+  },
   headerText: {
     fontSize: 11,
     lineHeight: 15,
@@ -430,7 +493,7 @@ const styles = StyleSheet.create({
   dividerRow: {
     borderBottomWidth: 1,
     paddingHorizontal: 10,
-    paddingTop: Spacing.three,
+    paddingTop: 10,
     paddingBottom: 6,
   },
   dividerText: {
@@ -444,6 +507,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
   },
+  labelCell: {
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+  },
   cell: {
     justifyContent: 'center',
     paddingHorizontal: 8,
@@ -452,9 +520,6 @@ const styles = StyleSheet.create({
     fontSize: MetroType.subtle.fontSize,
     lineHeight: MetroType.subtle.lineHeight,
     fontWeight: 500,
-  },
-  labelCell: {
-    width: LABEL_WIDTH,
   },
   locationCell: {
     width: LOCATION_WIDTH,

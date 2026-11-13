@@ -111,6 +111,29 @@ export interface InvestorFile {
 }
 
 /**
+ * What a document is, as far as the screen is concerned.
+ *
+ * Only three cases matter: the two that can be shown on the page, and everything
+ * else, which can only be downloaded. The kind is read from the stored name
+ * because that is the one thing both the list and the signed URL agree on.
+ */
+export type FileKind = 'image' | 'pdf' | 'other';
+
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'avif'];
+
+/** `pdf`, or `jpg` — the extension the file was stored with, lower-cased. */
+export function fileExtension(file: InvestorFile): string {
+  return file.blobName.split('.').pop()?.toLowerCase() ?? '';
+}
+
+export function fileKind(file: InvestorFile): FileKind {
+  const extension = fileExtension(file);
+  if (IMAGE_EXTENSIONS.includes(extension)) return 'image';
+  if (extension === 'pdf') return 'pdf';
+  return 'other';
+}
+
+/**
  * An administrator looking at someone else's portal, as v1's "Investor View"
  * tab did from the investor's admin page.
  *
