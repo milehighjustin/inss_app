@@ -66,3 +66,4 @@ export {
 } from './feedback';
 export { MetroFileField, type MetroFileFieldProps, type PickedFile } from './upload';
 export { MetroPivot, type MetroPivotTab } from './pivot';
+export { MetroPager, type MetroPagerProps } from './pager';

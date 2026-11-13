@@ -56,9 +56,9 @@ export const SECTIONS: AppSection[] = [
   // itself, not on v1's "investor" shell model, exactly as its pages do.
   { name: 'portfolio', href: '/investor', label: 'Portfolio', requiresRole: 'investor' },
   { name: 'files', href: '/investor/files', label: 'Files', requiresRole: 'investor' },
-  // The support group's panel: the shift that turns alerts on, and the numbers
-  // the shift produced. Administrators, managers and supervisors keep their way
-  // in because the performance report moved here.
+  // The desk's own page: the shift that turns alerts on, the alerts still
+  // answerable, and the person's own history. Everyone else's shifts and the
+  // numbers are in Admin → Support, so this section has no admin part at all.
   { name: 'support', href: '/support', label: 'Support', requiresRoles: SUPPORT_ROLES },
   { name: 'admin', href: '/admin', label: 'Admin', requiresRole: 'administrator' },
   { name: 'account', href: '/account', label: 'Account' },

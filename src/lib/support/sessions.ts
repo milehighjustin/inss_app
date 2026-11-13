@@ -28,7 +28,7 @@ export interface SessionMetrics {
   notifications: number;
   /** Alerts they clicked: answered plus ignored. */
   clicked: number;
-  /** Answers picked up from the desk board after the alert had already rung. */
+  /** Answers picked up from the desk list after the alert had already rung. */
   claimed: number;
   firstActivityAt: string | null;
   lastActivityAt: string | null;
@@ -51,6 +51,17 @@ export interface SupportSession {
   durationSeconds: number;
   metrics: SessionMetrics;
 }
+
+/** One page of shift history, and how many shifts there are in all. */
+export interface SessionPage {
+  sessions: SupportSession[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** The page size the desk and the admin list share. */
+export const SESSIONS_PAGE_SIZE = 25;
 
 /** The shift this account has open, or null. */
 export async function fetchMySession(): Promise<SupportSession | null> {
@@ -87,19 +98,22 @@ export async function fetchActiveSessions(): Promise<SupportSession[]> {
   return sessions;
 }
 
-/** Past and current shifts, newest first, optionally one person's. Staff only. */
-export async function fetchSessions(
-  options: { userId?: string; limit?: number } = {},
-): Promise<SupportSession[]> {
+/**
+ * Past and current shifts, newest first, one page at a time.
+ *
+ * A support account gets its own history whatever it asks for; a manager,
+ * supervisor or administrator can narrow the list to one person with `userId`.
+ */
+export function fetchSessions(
+  options: { userId?: string; page?: number; pageSize?: number } = {},
+): Promise<SessionPage> {
   const query = new URLSearchParams();
   if (options.userId) query.set('userId', options.userId);
-  if (options.limit) query.set('limit', String(options.limit));
+  if (options.page && options.page > 1) query.set('page', String(options.page));
+  if (options.pageSize) query.set('pageSize', String(options.pageSize));
 
   const suffix = query.toString() ? `?${query.toString()}` : '';
-  const { sessions } = await apiFetch<{ sessions: SupportSession[] }>(
-    `/api/mobile/support/sessions${suffix}`,
-  );
-  return sessions;
+  return apiFetch<SessionPage>(`/api/mobile/support/sessions${suffix}`);
 }
 
 /** One shift. Staff read anyone's; a support account reads its own. */
@@ -135,56 +149,4 @@ export function elapsedSeconds(startedAt: string, now: number): number {
   const start = new Date(startedAt).getTime();
   if (Number.isNaN(start)) return 0;
   return Math.max(0, Math.round((now - start) / 1000));
-}
-
-/**
- * One alert on the desk board.
- *
- * The board is not an inbox: nothing here was re-sent. These are the alerts the
- * server already addressed to this person's tags in the last couple of hours, so
- * somebody starting a shift can still pick up a scan from just before it.
- */
-export interface DeskAlert {
-  notificationId: string;
-  title: string;
-  body: string;
-  priority: 'loud' | 'quiet';
-  qrCodeId?: string;
-  qrCodeName?: string;
-  locationName?: string;
-  createdAt: string;
-  ageSeconds: number;
-  /** What became of it. */
-  outcome: 'open' | 'answered' | 'ignored';
-  answeredBy?: string;
-  /** What this person did, if anything. */
-  mine: 'answered' | 'ignored' | null;
-  /** True when nobody has answered and this person has not settled it. */
-  canAccept: boolean;
-  tags: string[];
-}
-
-/** The desk board: alerts addressed to this person's tags, newest first. */
-export async function fetchDeskAlerts(minutes?: number): Promise<DeskAlert[]> {
-  const suffix = minutes ? `?minutes=${minutes}` : '';
-  const { alerts } = await apiFetch<{ alerts: DeskAlert[] }>(`/api/mobile/support/alerts${suffix}`);
-  return alerts;
-}
-
-/** Takes an alert from the board, recording the answer against this person. */
-export async function claimAlert(notificationId: string): Promise<DeskAlert> {
-  const { alert } = await apiFetch<{ alert: DeskAlert }>(
-    `/api/mobile/support/alerts/${encodeURIComponent(notificationId)}/claim`,
-    { method: 'POST' },
-  );
-  return alert;
-}
-
-/** `just now`, `2m ago`, `1h 5m ago` — how long an alert has been waiting. */
-export function ageLabel(seconds: number): string {
-  if (seconds < 45) return 'just now';
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
-
-  const minutes = Math.round(seconds / 60);
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m ago`;
 }

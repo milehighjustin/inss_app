@@ -107,6 +107,7 @@ A page must not scroll on a wide screen. The row at the bottom is usually the on
 - Every admin section follows this shape. If a screen can push the page taller than the window at 900px and up, it is not finished.
 - The scroll boundary is the *list*, not the tab body: toolbar, figures and pivot are siblings of the pane, so a search or a filter never scrolls out of reach. A tab that renders in more than one piece puts its own `MetroListArea` inside itself, and the section page never wraps a tab in one.
 - **Integrations is a list, one page per connection.** QuickBooks and PDK have nothing to say to each other; stacking them on one screen makes the section read as one integration with a stranger attached. Adding a third means an index entry and a page.
+- **A long list is paged, not infinite.** `MetroPager` under the list, twenty-five rows a page. A reader has to be able to say where they are and go back to a row they saw; a list that grows while you drag makes both impossible. The count in the middle ("26–50 of 312") is a caption, not a control, so its buttons stay intrinsic even on a phone.
 - Keep the page heading short on a board: `eyebrow` and `title`, and put the explanation in the panes' hints. Every line of chrome is a row of data lost.
 
 ## Navigation

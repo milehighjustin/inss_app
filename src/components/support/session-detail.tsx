@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -17,7 +17,7 @@ import {
 } from '@/components/metro';
 import { Spacing } from '@/constants/metro';
 import { formatDuration, formatRate } from '@/lib/admin/performance';
-import { SESSION_STAFF_ROLES, hasAnyRole } from '@/lib/auth/roles';
+import { hasRole } from '@/lib/auth/roles';
 import { useAuth } from '@/lib/auth/session';
 import {
   elapsedSeconds,
@@ -36,12 +36,26 @@ import {
  * second one is a delivery problem.
  *
  * A support account may open its own session and nothing else — the server
- * enforces that, and only staff get the link into the person's history.
+ * enforces that. The link into everyone's sessions is administrator-only, because
+ * that list lives in Admin → Support and nowhere else.
+ *
+ * `backHref` is where the back button goes: the desk's page for a person's own
+ * shift, the admin list for a supervisor reading someone else's.
  */
-export function SessionDetail({ sessionId }: { sessionId: string }) {
+export interface SessionDetailProps {
+  sessionId: string;
+  backHref?: Href;
+  backLabel?: string;
+}
+
+export function SessionDetail({
+  sessionId,
+  backHref = '/support',
+  backLabel = '‹ Support',
+}: SessionDetailProps) {
   const theme = useMetro();
   const { user } = useAuth();
-  const staff = hasAnyRole(user?.roles, SESSION_STAFF_ROLES);
+  const staff = hasRole(user?.roles, 'administrator');
 
   const [session, setSession] = useState<SupportSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,9 +118,9 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       width="wide"
       action={
         <MetroButton
-          label="‹ Sessions"
+          label={backLabel}
           variant="ghost"
-          onPress={() => (router.canGoBack() ? router.back() : router.navigate('/support/sessions'))}
+          onPress={() => (router.canGoBack() ? router.back() : router.navigate(backHref))}
         />
       }>
       {error ? <MetroBanner message={error} tone="error" onDismiss={() => setError(null)} /> : null}
@@ -214,7 +228,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
                 variant="ghost"
                 onPress={() =>
                   router.push({
-                    pathname: '/support/sessions',
+                    pathname: '/admin/support/sessions',
                     params: { userId: session.userId, name: session.name },
                   })
                 }

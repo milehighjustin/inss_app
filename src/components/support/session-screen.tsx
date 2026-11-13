@@ -1,101 +1,69 @@
-import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBanner,
-  MetroBoard,
+  MetroBoardPage,
   MetroButton,
   MetroEmpty,
   MetroFigures,
   MetroList,
+  MetroListArea,
   MetroListRow,
   MetroLoading,
-  MetroPane,
-  MetroScreen,
-  MetroSection,
+  MetroPager,
+  useBoard,
+  useMetro,
   type MetroFigure,
 } from '@/components/metro';
 import { Spacing } from '@/constants/metro';
 import { formatDuration, formatRate } from '@/lib/admin/performance';
-import { SESSION_STAFF_ROLES, hasAnyRole } from '@/lib/auth/roles';
-import { useAuth } from '@/lib/auth/session';
 import {
   ageLabel,
+  alertOutcome,
+  ALERTS_PAGE_SIZE,
   claimAlert,
+  fetchMyAlerts,
+  type AlertPage,
+  type AlertRow,
+} from '@/lib/support/alerts';
+import {
   elapsedSeconds,
   endSession,
-  fetchActiveSessions,
-  fetchDeskAlerts,
   fetchMySession,
   startSession,
-  type DeskAlert,
   type SupportSession,
 } from '@/lib/support/sessions';
-import { SupportPivot } from './support-pivot';
 
 /**
- * Support → Session: the desk.
+ * Support → the desk.
  *
- * **Wide screens do not scroll the page.** A supervisor is watching this on a
- * desktop or an iPad in a stand, and a page that scrolls means the alerts at the
- * bottom are invisible until somebody drags — exactly the alerts that matter.
- * So above `BOARD_WIDTH` the page is fixed and each pane scrolls inside itself;
- * on a phone, where there is genuinely no room, it stacks and scrolls as usual.
+ * **The list is the page.** An alert is what this screen is for, so it is what
+ * the screen shows: every alert addressed to this person's tags, newest first,
+ * twenty-five to a page, with the ones still inside their five minutes carrying
+ * an Accept button. Nothing else competes with it.
  *
- * **The board is the working area.** "Recent alerts" lists what was addressed to
- * this person's tags in the last two hours and what became of each, because an
- * alert raised at 07:58 belongs to the person starting at 08:00 — the visitor may
- * still be at the sign. Accepting one records the answer against them; nothing is
- * re-sent and nothing rings twice.
+ * **The shift is one line of chrome.** Starting and ending it is the switch that
+ * turns delivery on, so it sits at the top left with the shift's own numbers
+ * beside it, filling the width they were given. There is no second list of
+ * sessions and no report here: everyone's shifts and the numbers are in Admin →
+ * Support, and a desk screen that also administers is a desk nobody watches.
  *
- * The headline figure is still the status: whether alerts will arrive at all is
- * the one thing this screen must never be ambiguous about.
+ * **Wide screens do not scroll the page.** The list scrolls inside its pane and
+ * the pager stays put beneath it, because the alert that matters is usually the
+ * one at the bottom of the window.
  */
 
-/** Above this, the page itself stops scrolling and the panes do. */
-const BOARD_WIDTH = 900;
-
-/** Three readable columns need more than a two-column width. */
-const THREE_PANE_WIDTH = 1180;
-
-/** A clock that only runs while the shift is open. */
-function useNow(active: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!active) return;
-
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [active]);
-
-  return now;
-}
-
-/** What the row says became of the alert. */
-function alertState(alert: DeskAlert): string {
-  if (alert.mine === 'answered') return 'You answered';
-  if (alert.mine === 'ignored') return 'You ignored it';
-  if (alert.outcome === 'answered') return `Answered by ${alert.answeredBy ?? 'someone'}`;
-  if (alert.outcome === 'ignored') return 'Ignored, still open to take';
-  return 'Nobody has answered';
-}
-
 export function SupportSessionScreen() {
-  const { user } = useAuth();
-  const { width } = useWindowDimensions();
-  const staff = hasAnyRole(user?.roles, SESSION_STAFF_ROLES);
-
-  const board = width >= BOARD_WIDTH;
-  const threePanes = staff && width >= THREE_PANE_WIDTH;
+  const theme = useMetro();
+  const board = useBoard();
 
   const [session, setSession] = useState<SupportSession | null>(null);
-  const [active, setActive] = useState<SupportSession[]>([]);
-  const [alerts, setAlerts] = useState<DeskAlert[]>([]);
+  const [data, setData] = useState<AlertPage | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [paging, setPaging] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{
@@ -105,48 +73,41 @@ export function SupportSessionScreen() {
 
   const now = useNow(session?.active === true);
 
-  /** Everything this screen reads, in one round trip each. */
-  const pull = useCallback(async () => {
-    const [mine, boardAlerts, onNow] = await Promise.all([
+  const pull = useCallback(async (wantedPage: number) => {
+    const [mine, alerts] = await Promise.all([
       fetchMySession(),
-      fetchDeskAlerts(),
-      staff ? fetchActiveSessions() : Promise.resolve([] as SupportSession[]),
+      fetchMyAlerts({ page: wantedPage, pageSize: ALERTS_PAGE_SIZE }),
     ]);
 
     setSession(mine);
-    setAlerts(boardAlerts);
-    setActive(onNow);
-  }, [staff]);
+    setData(alerts);
+  }, []);
 
-  const load = useCallback(async () => {
-    try {
-      await pull();
-      setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load the desk');
-    } finally {
-      setLoading(false);
-    }
-  }, [pull]);
+  const load = useCallback(
+    async (wantedPage: number, mode: 'load' | 'refresh' | 'page') => {
+      if (mode === 'load') setLoading(true);
+      if (mode === 'refresh') setRefreshing(true);
+      if (mode === 'page') setPaging(true);
+
+      try {
+        await pull(wantedPage);
+        setError(null);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not load the alerts');
+      } finally {
+        if (mode === 'load') setLoading(false);
+        if (mode === 'refresh') setRefreshing(false);
+        if (mode === 'page') setPaging(false);
+      }
+    },
+    [pull],
+  );
 
   useEffect(() => {
-    void load();
+    void load(1, 'load');
   }, [load]);
 
-  const refresh = async () => {
-    setRefreshing(true);
-    try {
-      await pull();
-      setError(null);
-    } catch (cause) {
-      setNotice({
-        tone: 'error',
-        message: cause instanceof Error ? cause.message : 'Could not refresh the desk',
-      });
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const refresh = () => load(data?.page ?? 1, 'refresh');
 
   const start = async () => {
     setBusy(true);
@@ -161,7 +122,7 @@ export function SupportSessionScreen() {
           ? 'You are on duty. The earlier session was closed and this one carries the numbers from here.'
           : 'You are on duty. Alerts addressed to your tags will come through until you end the session.',
       });
-      await pull();
+      await pull(data?.page ?? 1);
     } catch (cause) {
       setNotice({
         tone: 'error',
@@ -185,7 +146,7 @@ export function SupportSessionScreen() {
           ? `Session ended after ${formatDuration(ended.durationSeconds)}. You will not hear alerts until you start another.`
           : 'There was no session open.',
       });
-      await pull();
+      await pull(data?.page ?? 1);
     } catch (cause) {
       setNotice({
         tone: 'error',
@@ -196,28 +157,25 @@ export function SupportSessionScreen() {
     }
   };
 
-  const accept = async (alert: DeskAlert) => {
+  const accept = async (alert: AlertRow) => {
     setClaiming(alert.notificationId);
     setNotice(null);
 
     try {
-      const claimed = await claimAlert(alert.notificationId);
-      setAlerts((current) =>
-        current.map((row) =>
-          row.notificationId === claimed.notificationId ? claimed : row,
-        ),
-      );
+      await claimAlert(alert.notificationId);
       setNotice({
         tone: 'success',
-        message: `You took “${claimed.title}”. The response time is counted from when it rang, not from now.`,
+        message: `You took “${alert.title}”. The response time is counted from when it rang, not from now.`,
       });
-      // The shift's numbers just changed; read them again rather than guess.
-      await pull();
+      // The row, its numbers and the shift's rate all changed; read them again.
+      await load(data?.page ?? 1, 'refresh');
     } catch (cause) {
       setNotice({
         tone: 'error',
         message: cause instanceof Error ? cause.message : 'Could not take that alert',
       });
+      // A refusal is usually age or someone else's answer; the list is stale.
+      await load(data?.page ?? 1, 'refresh');
     } finally {
       setClaiming(null);
     }
@@ -231,17 +189,13 @@ export function SupportSessionScreen() {
     : 0;
   const metrics = session?.metrics;
 
-  const figures: MetroFigure[] = [
-    {
-      label: 'Status',
-      value: onDuty ? 'On duty' : 'Off duty',
-      hint: onDuty ? 'Alerts are reaching this account' : 'Alerts are held until you start',
-      ...(onDuty ? { tone: 'accent' as const } : {}),
-    },
+  const stats: MetroFigure[] = [
     {
       label: onDuty ? 'On the clock' : 'Last session',
       value: formatDuration(session ? clock : null),
-      hint: session ? `Since ${new Date(session.startedAt).toLocaleTimeString()}` : 'No session yet',
+      hint: session
+        ? `${onDuty ? 'Since' : 'Started'} ${new Date(session.startedAt).toLocaleTimeString()}`
+        : 'No session yet',
     },
     {
       label: 'Answered',
@@ -255,31 +209,31 @@ export function SupportSessionScreen() {
     },
   ];
 
-  const shiftSection = (
-    <MetroSection
-      title="Your session"
-      hint={
-        onDuty
-          ? 'End the session when you leave the desk — that is what stops the alerts.'
-          : 'Start a session to be told about the signs your tags cover.'
-      }>
-      {session ? (
-        <MetroList>
-          <MetroListRow
-            title={onDuty ? 'Session open' : 'Session ended'}
-            subtitle={[
-              `Started ${new Date(session.startedAt).toLocaleTimeString()}`,
-              session.tags.length ? `Tags: ${session.tags.join(', ')}` : 'No tags on this account',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            value={formatDuration(clock)}
-            emphasis
-          />
-        </MetroList>
-      ) : null}
+  const head = (
+    <View style={[styles.head, board && styles.headRow]}>
+      <MetroFigures figures={stats} size="medium" style={styles.stats} />
 
-      <View style={styles.action}>
+      <View style={[styles.shift, board && styles.shiftWide, board && styles.shiftRight]}>
+        <View style={styles.statusLine}>
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: onDuty ? theme.accent : theme.border },
+            ]}
+          />
+          <Text
+            style={[styles.statusText, { color: onDuty ? theme.accent : theme.text }]}>
+            {onDuty ? 'On duty' : 'Off duty'}
+          </Text>
+        </View>
+
+        <Text
+          style={[styles.statusHint, board && styles.rightText, { color: theme.textDim }]}>
+          {onDuty
+            ? 'Alerts addressed to your tags are coming through. End the session when you leave.'
+            : 'Start a session to be told about the signs your tags cover.'}
+        </Text>
+
         <MetroButton
           label={onDuty ? 'End session' : session ? 'Start a new session' : 'Start a session'}
           loading={busy}
@@ -288,42 +242,48 @@ export function SupportSessionScreen() {
           onPress={() => void (onDuty ? stop() : start())}
         />
       </View>
-    </MetroSection>
+    </View>
   );
 
-  const alertsSection = (
-    <MetroSection
-      title="Recent alerts"
-      hint="Addressed to your tags in the last two hours. Take one that nobody has answered — even if it rang before your shift."
-      accessory={
-        <MetroButton
-          label="Refresh"
-          size="compact"
-          variant="ghost"
-          loading={refreshing}
-          onPress={() => void refresh()}
-        />
-      }>
-      {alerts.length === 0 ? (
+  const alerts = data?.alerts ?? [];
+
+  const list = (
+    <MetroListArea>
+      {loading ? (
+        <MetroLoading label="Reading the alerts" />
+      ) : alerts.length === 0 ? (
         <MetroEmpty
-          title="Nothing recent"
-          message="No alert addressed to your tags has been raised in the last two hours."
+          title="No alerts yet"
+          message="An alert addressed to your tags appears here as soon as somebody scans a sign you cover."
         />
       ) : (
-        <MetroList>
+        <MetroList title="Alerts">
           {alerts.map((alert) => (
             <MetroListRow
               key={alert.notificationId}
               title={alert.title}
-              subtitle={[alertState(alert), ageLabel(alert.ageSeconds)]
+              subtitle={[
+                alert.locationName ?? alert.qrCodeName ?? 'No place attached',
+                alertOutcome(alert),
+                ageLabel(alert.ageSeconds),
+              ]
                 .filter(Boolean)
                 .join(' · ')}
               badge={
-                alert.outcome === 'open'
-                  ? { label: 'Open', tone: 'accent' as const }
-                  : alert.outcome === 'ignored'
-                    ? { label: 'Ignored', tone: 'danger' as const }
-                    : undefined
+                alert.canAccept
+                  ? { label: 'Answerable', tone: 'accent' as const }
+                  : alert.action === 'answered'
+                    ? { label: 'Answered', tone: 'neutral' as const }
+                    : alert.action === 'ignored'
+                      ? { label: 'Ignored', tone: 'danger' as const }
+                      : alert.action === 'expired'
+                        ? { label: 'Expired', tone: 'neutral' as const }
+                        : undefined
+              }
+              value={
+                alert.action === 'answered' && alert.answerSeconds != null
+                  ? `${alert.answerSeconds}s`
+                  : undefined
               }
               emphasis
               accessory={
@@ -340,56 +300,18 @@ export function SupportSessionScreen() {
           ))}
         </MetroList>
       )}
-    </MetroSection>
+    </MetroListArea>
   );
 
-  const numbersSection = (
-    <MetroSection title="This session" hint="What happened while the clock was running.">
-      {!metrics || metrics.notifications === 0 ? (
-        <MetroEmpty
-          title="Nothing yet"
-          message={
-            onDuty
-              ? 'No alert addressed to your tags has reached you since this session began.'
-              : 'Start a session and the alerts your tags cover will be counted here.'
-          }
-        />
-      ) : (
-        <MetroList>
-          <MetroListRow
-            title="Alerts received"
-            subtitle={`${metrics.answered} answered · ${metrics.ignored} ignored · ${metrics.held} held`}
-            value={String(metrics.notifications)}
-            emphasis
-          />
-          <MetroListRow
-            title="Median answer"
-            subtitle="From ringing to answered"
-            value={formatDuration(metrics.medianAnswerSeconds)}
-            emphasis
-          />
-          <MetroListRow
-            title="Missed"
-            subtitle="Offered, never answered or ignored"
-            value={String(metrics.missed)}
-            emphasis
-          />
-          <MetroListRow
-            title="Video calls"
-            subtitle={`${formatDuration(metrics.talkSeconds)} on the line`}
-            value={String(metrics.calls)}
-            emphasis
-          />
-        </MetroList>
-      )}
-    </MetroSection>
-  );
-
-  const teamSection = (
-    <MetroSection
-      title="On now"
-      hint="Everyone with a session open, longest first."
-      accessory={
+  return (
+    <MetroBoardPage
+      eyebrow="Support"
+      title="Desk"
+      subtitle="Every alert addressed to your tags. The ones inside five minutes can be answered here."
+      width="wide"
+      onRefresh={() => void refresh()}
+      refreshing={refreshing}
+      action={
         <MetroButton
           label="Refresh"
           size="compact"
@@ -398,124 +320,95 @@ export function SupportSessionScreen() {
           onPress={() => void refresh()}
         />
       }>
-      {active.length === 0 ? (
-        <MetroEmpty
-          title="Nobody is on duty"
-          message="No support account has a session open. Alerts addressed to the group are being held."
-        />
-      ) : (
-        <MetroList>
-          {active.map((row) => (
-            <MetroListRow
-              key={row.sessionId}
-              title={row.name}
-              subtitle={`On for ${formatDuration(row.durationSeconds)} · ${row.metrics.answered} of ${row.metrics.offered} answered`}
-              value={`${row.metrics.notifications} alerts`}
-              emphasis
-              onPress={() =>
-                router.push({
-                  pathname: '/support/session/[sessionId]',
-                  params: { sessionId: row.sessionId },
-                })
-              }
-            />
-          ))}
-        </MetroList>
-      )}
-    </MetroSection>
-  );
-
-  const banners = (
-    <>
       {notice ? (
-        <MetroBanner message={notice.message} tone={notice.tone} onDismiss={() => setNotice(null)} />
+        <MetroBanner
+          message={notice.message}
+          tone={notice.tone}
+          onDismiss={() => setNotice(null)}
+        />
       ) : null}
-      {error ? <MetroBanner message={error} tone="error" onDismiss={() => setError(null)} /> : null}
-    </>
-  );
+      {error ? (
+        <MetroBanner message={error} tone="error" onDismiss={() => setError(null)} />
+      ) : null}
 
-  // A phone has no width to spend: one column, page scrolls. Everything else is
-  // a fixed board whose panes scroll, so the alerts stay on screen.
-  if (!board) {
-    return (
-      <MetroScreen
-        eyebrow="Support"
-        title="Session"
-        subtitle="Your shift on the desk. Alerts only come to you while a session is open."
-        width="wide"
-        onRefresh={() => void refresh()}
-        refreshing={refreshing}>
-        <SupportPivot />
+      {head}
 
-        {banners}
+      {list}
 
-        {loading ? (
-          <MetroLoading label="Checking your session" />
-        ) : (
-          <>
-            <MetroFigures figures={figures} size="medium" />
-            {shiftSection}
-            {alertsSection}
-            {numbersSection}
-            {staff ? teamSection : null}
-          </>
-        )}
-      </MetroScreen>
-    );
-  }
-
-  return (
-    <MetroScreen
-      eyebrow="Support"
-      title="Session"
-      width="wide"
-      scroll={false}
-      padding="compact"
-      contentStyle={styles.boardContent}>
-      <SupportPivot />
-
-      {banners}
-
-      {loading ? (
-        <MetroLoading label="Checking your session" />
-      ) : (
-        <>
-          <MetroFigures figures={figures} size="medium" />
-
-          <MetroBoard>
-            {threePanes ? (
-              <>
-                <MetroPane grow={1}>
-                  {shiftSection}
-                  {numbersSection}
-                </MetroPane>
-                <MetroPane grow={1.6}>{alertsSection}</MetroPane>
-                <MetroPane grow={1}>{teamSection}</MetroPane>
-              </>
-            ) : (
-              <>
-                <MetroPane grow={1.6}>{alertsSection}</MetroPane>
-                <MetroPane grow={1}>
-                  {shiftSection}
-                  {numbersSection}
-                  {staff ? teamSection : null}
-                </MetroPane>
-              </>
-            )}
-          </MetroBoard>
-        </>
-      )}
-    </MetroScreen>
+      <View style={styles.footer}>
+        <MetroPager
+          page={data?.page ?? 1}
+          pageSize={data?.pageSize ?? ALERTS_PAGE_SIZE}
+          total={data?.total ?? 0}
+          loading={paging}
+          onChange={(page) => void load(page, 'page')}
+        />
+      </View>
+    </MetroBoardPage>
   );
 }
 
+/** A clock for the on-duty figures. */
+function useNow(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!active) return;
+
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+
+  return now;
+}
+
 const styles = StyleSheet.create({
-  boardContent: {
-    flex: 1,
+  head: {
     gap: Spacing.three,
   },
-  action: {
+  headRow: {
     flexDirection: 'row',
-    marginTop: Spacing.one,
+    alignItems: 'flex-start',
+  },
+  shift: {
+    gap: Spacing.two,
+    alignItems: 'flex-start',
+  },
+  shiftWide: {
+    // The switch keeps a readable column; the numbers take everything else.
+    width: 260,
+  },
+  shiftRight: {
+    // The switch is the last thing on the row and sits on the right edge: the
+    // numbers run from the left margin up to it. On a phone it is a plain
+    // stacked block, where a full-width button is the better target.
+    alignItems: 'flex-end',
+    alignSelf: 'flex-end',
+  },
+  statusLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+  },
+  statusText: {
+    fontSize: 15,
+    fontWeight: 600,
+  },
+  statusHint: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  rightText: {
+    textAlign: 'right',
+  },
+  stats: {
+    flex: 1,
+  },
+  footer: {
+    paddingBottom: Spacing.two,
   },
 });
