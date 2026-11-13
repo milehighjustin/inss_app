@@ -10,7 +10,7 @@ import {
   MetroError,
   MetroField,
   MetroFileField,
-  MetroFigures,
+  MetroStatLine,
   MetroLabel,
   MetroList,
   MetroListArea,
@@ -145,9 +145,8 @@ function DevicesAdmin() {
             autoCorrect={false}
           />
         </View>
+        {loading ? null : <MetroStatLine figures={figures} />}
       </AdminToolbar>
-
-      {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
       <MetroListArea>
       {loading ? (
@@ -767,9 +766,8 @@ function MediaAdmin() {
             autoCorrect={false}
           />
         </View>
+        {loading ? null : <MetroStatLine figures={figures} />}
       </AdminToolbar>
-
-      {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
       {uploading && file ? (
         <MetroSection

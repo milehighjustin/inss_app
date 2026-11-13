@@ -10,7 +10,7 @@ import {
   MetroError,
   MetroField,
   MetroFileField,
-  MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListRow,
   MetroListArea,
@@ -186,9 +186,8 @@ export function DocumentsAdmin() {
             autoCorrect={false}
           />
         </View>
+        {loading ? null : <MetroStatLine figures={figures} />}
       </AdminToolbar>
-
-      {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
       <MetroListArea>
       {loading ? (

@@ -11,6 +11,7 @@ import {
   MetroError,
   MetroField,
   MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListArea,
   MetroListRow,
@@ -136,9 +137,8 @@ function KpiLocationSettings() {
             autoCorrect={false}
           />
         </View>
+        {loading ? null : <MetroStatLine figures={figures} />}
       </AdminToolbar>
-
-      {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
       <MetroListArea>
       {loading ? (

@@ -9,7 +9,7 @@ import {
   MetroEmpty,
   MetroError,
   MetroField,
-  MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListArea,
   MetroListRow,
@@ -146,7 +146,7 @@ export function UsersAdmin() {
         <MetroBanner message={notice.message} tone={notice.tone} onDismiss={() => setNotice(null)} />
       ) : null}
 
-      {loading ? null : <MetroFigures figures={figures} size="medium" />}
+      {loading ? null : <MetroStatLine figures={figures} />}
 
       <View style={[styles.controls, { flexDirection: sideBySide ? 'row' : 'column' }]}>
         <View style={styles.search}>

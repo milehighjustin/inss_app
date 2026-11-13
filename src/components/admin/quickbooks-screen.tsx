@@ -16,7 +16,7 @@ import {
   MetroButton,
   MetroEmpty,
   MetroError,
-  MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListArea,
   MetroListRow,
@@ -247,7 +247,7 @@ export function QuickBooksAdmin() {
           <MetroError message={error} onRetry={() => void load('retry')} />
         ) : !status ? null : (
           <>
-            <MetroFigures figures={figures} size="medium" />
+            <MetroStatLine figures={figures} />
 
             <View style={[styles.columns, { flexDirection: sideBySide ? 'row' : 'column' }]}>
               <View style={styles.column}>

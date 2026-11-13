@@ -51,8 +51,11 @@ export function MetroButton({
    *
    * A caller that really needs the full width can still pass it in `style`,
    * which is applied last.
+   *
+   * `compact` is exempt: it is the action inside a row, and stretching it to
+   * the page on a phone is what pushed the row's own words out of the row.
    */
-  const fullWidth = width < Metrics.desktop;
+  const fullWidth = width < Metrics.desktop && size === 'default';
 
   return (
     <Pressable
@@ -69,6 +72,10 @@ export function MetroButton({
           borderColor: variant === 'ghost' ? theme.border : 'transparent',
           opacity: inactive ? 0.5 : 1,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          // A button in a wrapping row (a page's action slot, a toolbar) would
+          // otherwise keep its label width beside its neighbour and squeeze the
+          // row's other content; the width is what makes it take the line.
+          width: fullWidth ? '100%' : undefined,
         },
         style,
       ]}>

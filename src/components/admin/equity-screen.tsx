@@ -7,7 +7,7 @@ import {
   MetroEmpty,
   MetroError,
   MetroField,
-  MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListRow,
   MetroListArea,
@@ -94,9 +94,8 @@ export function EquityAdmin() {
             autoCorrect={false}
           />
         </View>
+        {loading ? null : <MetroStatLine figures={figures} />}
       </AdminToolbar>
-
-      {loading ? null : <MetroFigures figures={figures} size="medium" />}
 
       <MetroListArea>
       {loading ? (

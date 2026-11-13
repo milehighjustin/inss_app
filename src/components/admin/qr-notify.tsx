@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBanner,
@@ -337,7 +337,9 @@ function RecipientSheet({
           {query ? `Nobody matches “${query}”.` : 'There are no active accounts to choose from.'}
         </Text>
       ) : (
-        <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+        // The sheet is already bounded by the window and scrolls its own body,
+        // so the list takes the height that leaves instead of a fixed 340.
+        <View style={styles.people}>
           {visibleUsers.map((user) => (
             <MetroCheckbox
               key={user.userId}
@@ -349,7 +351,7 @@ function RecipientSheet({
               onChange={() => onToggle(user.userId)}
             />
           ))}
-        </ScrollView>
+        </View>
       )}
     </MetroSheet>
   );
@@ -366,8 +368,5 @@ const styles = StyleSheet.create({
   },
   summary: {
     fontSize: 13,
-  },
-  list: {
-    maxHeight: 340,
   },
 });

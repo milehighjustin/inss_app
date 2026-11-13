@@ -100,7 +100,73 @@ export function MetroFigures({ figures, size = 'large', style }: MetroFiguresPro
   );
 }
 
+/**
+ * The same figures, on one line, for a toolbar.
+ *
+ * A band of figures is the page statement when the numbers are the reason the
+ * screen exists. Above a list they are context, and the band's height is height
+ * the list does not get — so a page that is a list puts them here instead: value,
+ * label, separated by a rule, at the size of a caption.
+ */
+export function MetroStatLine({ figures }: { figures: MetroFigure[] }) {
+  const theme = useMetro();
+
+  return (
+    <View style={styles.line}>
+      {figures.map((figure, index) => (
+        <View key={figure.label} style={styles.lineItem}>
+          {index > 0 ? (
+            <Text style={[styles.lineDivider, { color: theme.border }]}>|</Text>
+          ) : null}
+          <Text
+            style={[
+              styles.lineValue,
+              {
+                color:
+                  figure.tone === 'danger'
+                    ? theme.danger
+                    : figure.tone === 'accent'
+                      ? theme.accent
+                      : theme.text,
+              },
+            ]}>
+            {figure.value}
+          </Text>
+          <Text style={[styles.lineLabel, { color: theme.textDim }]}>
+            {figure.label.toLowerCase()}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  line: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  lineValue: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: 700,
+    fontVariant: ['tabular-nums'],
+  },
+  lineLabel: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  lineDivider: {
+    fontSize: 12,
+    marginRight: Spacing.two,
+  },
   band: {
     flexDirection: 'row',
     flexWrap: 'wrap',

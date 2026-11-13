@@ -10,6 +10,7 @@ import {
   MetroError,
   MetroField,
   MetroBoardPage,
+  MetroStatLine,
   MetroList,
   MetroListArea,
   MetroListRow,
@@ -41,8 +42,6 @@ import { QrPlacementSection } from './qr-placement';
  * of service — v1 hides inactive codes from this list, and so does v2.
  */
 export function QrAdmin() {
-  const theme = useMetro();
-
   const [codes, setCodes] = useState<QrCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,25 +80,14 @@ export function QrAdmin() {
     (code) => code.notifyTags.length + code.notifyUserIds.length > 0,
   ).length;
 
-  // The three counts used to be a band of figures taller than two list rows and
-  // wider than the search beside them. The list is what this page is for, so they
-  // are one line of text in the toolbar where a glance is enough.
-  const stats = (
-    <View style={styles.stats}>
-      {/* How many there are is already the toolbar's count; these are the two
-          facts the count does not carry. */}
-      {[
-        { value: activeCodes, label: 'active' },
-        { value: alertingCodes, label: 'alerting' },
-      ].map((stat, index) => (
-        <View key={stat.label} style={styles.stat}>
-          {index > 0 ? <Text style={[styles.statDot, { color: theme.border }]}>|</Text> : null}
-          <Text style={[styles.statValue, { color: theme.text }]}>{stat.value}</Text>
-          <Text style={[styles.statLabel, { color: theme.textDim }]}>{stat.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
+  // The counts used to be a band of figures taller than two list rows and wider
+  // than the search beside them. The list is what this page is for, so they are
+  // one line in the toolbar where a glance is enough. How many there are is
+  // already the toolbar's count; these are the two facts it does not carry.
+  const stats = [
+    { label: 'Active', value: String(activeCodes) },
+    { label: 'Alerting', value: String(alertingCodes) },
+  ];
 
   const replace = (updated: QrCode) => {
     setCodes((rows) => {
@@ -152,7 +140,7 @@ export function QrAdmin() {
           />
         </View>
 
-        {loading ? null : stats}
+        {loading ? null : <MetroStatLine figures={stats} />}
       </AdminToolbar>
 
       <MetroListArea>
@@ -456,30 +444,6 @@ const styles = StyleSheet.create({
     flex: 1,
     // A phone wraps the rest of the toolbar under it rather than squeezing the field away.
     minWidth: 220,
-  },
-  stats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: 700,
-    fontVariant: ['tabular-nums'],
-  },
-  statLabel: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  statDot: {
-    fontSize: 12,
-    marginRight: Spacing.two,
   },
   codeFrame: {
     alignSelf: 'flex-start',

@@ -1,8 +1,25 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+  type ViewStyle,
+} from 'react-native';
 
 import { MaxContentWidth, MetroType, Metrics, Spacing } from '@/constants/metro';
 import { useMetro } from './use-metro';
+
+/**
+ * Below this the header's buttons move under its words.
+ *
+ * The same line the button uses to go full width: on a phone every button in the
+ * action slot is as wide as the page, so sharing a row with the title left the
+ * title clipped to a few letters.
+ */
+const HEADER_STACK_BREAKPOINT = Metrics.desktop;
 
 export interface MetroScreenProps {
   eyebrow?: string;
@@ -51,6 +68,10 @@ export function MetroScreen({
   padding = 'page',
 }: MetroScreenProps) {
   const theme = useMetro();
+  const { width: windowWidth } = useWindowDimensions();
+  // A wide window puts the actions beside the heading; a narrow one puts them
+  // beneath it, full width, where they cannot squeeze the heading away.
+  const stacked = windowWidth < HEADER_STACK_BREAKPOINT;
   const bodyPadding =
     padding === 'compact'
       ? { paddingTop: Spacing.two, paddingBottom: Spacing.two }
@@ -60,8 +81,12 @@ export function MetroScreen({
     <View
       style={[styles.column, width === 'column' && { maxWidth: MaxContentWidth }, contentStyle]}>
       {eyebrow || title || subtitle || action ? (
-        <View style={styles.header}>
-          <View style={styles.headerText}>
+        <View
+          style={[
+            styles.header,
+            stacked && { flexDirection: 'column', alignItems: 'stretch' },
+          ]}>
+          <View style={stacked ? styles.headerTextStacked : styles.headerText}>
             {eyebrow ? (
               <Text style={[styles.eyebrow, { color: theme.textDim }]}>
                 {eyebrow.toUpperCase()}
@@ -72,7 +97,9 @@ export function MetroScreen({
               <Text style={[styles.subtitle, { color: theme.textDim }]}>{subtitle}</Text>
             ) : null}
           </View>
-          {action}
+          {action ? (
+            <View style={stacked ? styles.actionStacked : styles.actionInline}>{action}</View>
+          ) : null}
         </View>
       ) : null}
 
@@ -134,6 +161,19 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
     gap: 4,
+  },
+  // In a column the words take their own height rather than `flex: 1`, which
+  // would grow them down the page; `stretch` gives them the full width.
+  headerTextStacked: {
+    alignSelf: 'stretch',
+    gap: 4,
+  },
+  actionInline: {
+    flexShrink: 0,
+    justifyContent: 'flex-start',
+  },
+  actionStacked: {
+    alignSelf: 'stretch',
   },
   eyebrow: {
     fontSize: MetroType.eyebrow.fontSize,

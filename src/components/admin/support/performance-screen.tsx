@@ -7,7 +7,7 @@ import {
   MetroBoardPage,
   MetroBoard,
   MetroEmpty,
-  MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListRow,
   MetroListArea,
@@ -198,7 +198,7 @@ export function SupportPerformanceScreen() {
         <MetroLoading label="Reading the log" />
       ) : !report ? null : (
         <>
-          <MetroFigures figures={figures} size="medium" />
+          <MetroStatLine figures={figures} />
 
           {board ? (
             <MetroBoard>

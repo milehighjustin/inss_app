@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   MetroBanner,
@@ -9,7 +9,7 @@ import {
   MetroCheckbox,
   MetroError,
   MetroField,
-  MetroFigures,
+  MetroStatLine,
   MetroListArea,
   MetroLoading,
   MetroPivot,
@@ -103,7 +103,7 @@ export function NotificationsAdmin() {
       ) : null}
       {error ? <MetroError message={error} onRetry={() => void load()} /> : null}
 
-      <MetroFigures figures={figures} />
+      <MetroStatLine figures={figures} />
 
       <MetroPivot
         tabs={[
@@ -536,7 +536,11 @@ function SendPanel({
             Nothing has been sent yet — by hand or by a QR code.
           </Text>
         ) : (
-          <ScrollView style={styles.log} nestedScrollEnabled>
+          // The log is as long as it is: the panel around it already scrolls
+          // inside the window, so a second scroller with a fixed 360-point cap
+          // only cut the list short on a tall screen and overflowed on a short
+          // one.
+          <View>
             {notifications.map((record) => (
               <View
                 key={record._id}
@@ -558,7 +562,7 @@ function SendPanel({
                 </Text>
               </View>
             ))}
-          </ScrollView>
+          </View>
         )}
       </MetroSection>
     </>
@@ -609,9 +613,6 @@ const styles = StyleSheet.create({
   empty: {
     fontSize: MetroType.subtle.fontSize,
     lineHeight: MetroType.subtle.lineHeight,
-  },
-  log: {
-    maxHeight: 360,
   },
   logRow: {
     gap: 2,

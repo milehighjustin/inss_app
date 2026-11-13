@@ -11,7 +11,7 @@ import {
   MetroEmpty,
   MetroError,
   MetroField,
-  MetroFigures,
+  MetroStatLine,
   MetroList,
   MetroListRow,
   MetroLoading,
@@ -381,7 +381,7 @@ export function PdkAdmin() {
         />
       ) : board ? (
         <>
-          <MetroFigures figures={figures} size="medium" />
+          <MetroStatLine figures={figures} />
           <MetroBoard>
             <MetroPane grow={1.3}>{doorsPane}</MetroPane>
             <MetroPane grow={1}>{holdersPane}</MetroPane>
@@ -389,7 +389,7 @@ export function PdkAdmin() {
         </>
       ) : (
         <>
-          <MetroFigures figures={figures} size="medium" />
+          <MetroStatLine figures={figures} />
           <MetroSection title="Doors">{doorsPane}</MetroSection>
           <MetroSection title="Holders">{holdersPane}</MetroSection>
         </>
